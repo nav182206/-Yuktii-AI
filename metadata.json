@@ -1,5 +1,5 @@
 {
-  "name": "Yukti AI",
-  "description": "AI Agent for planning, launching, monitoring, and optimizing digital marketing campaigns for SuperBFSI.",
+  "name": "CredLens AI",
+  "description": "AI-powered Credit Decisioning Engine for Indian corporate lending. Automates Comprehensive Credit Appraisal Memo (CAM) generation using multi-source data ingestion and web-scale research.",
   "requestFramePermissions": []
 }
