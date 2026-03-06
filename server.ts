@@ -10,34 +10,65 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const db = new Database("campaigns.db");
+const db = new Database("credlens.db");
 
 // Initialize database
 db.exec(`
-  CREATE TABLE IF NOT EXISTS campaigns (
+  CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-    brief TEXT,
-    strategy TEXT,
-    reasoning TEXT,
-    status TEXT,
+    email TEXT UNIQUE,
+    password TEXT,
+    name TEXT,
+    role TEXT, -- 'admin', 'employee', 'owner'
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   
-  CREATE TABLE IF NOT EXISTS variants (
+  CREATE TABLE IF NOT EXISTS companies (
     id TEXT PRIMARY KEY,
-    campaign_id TEXT,
-    subject TEXT,
-    body TEXT,
-    segment TEXT,
-    send_time TEXT,
-    tone TEXT,
-    strategy_focus TEXT,
-    status TEXT,
-    open_rate REAL DEFAULT 0,
-    click_rate REAL DEFAULT 0,
-    FOREIGN KEY(campaign_id) REFERENCES campaigns(id)
+    name TEXT,
+    owner_id TEXT,
+    status TEXT, -- 'active', 'pending'
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(owner_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS applications (
+    id TEXT PRIMARY KEY,
+    company_id TEXT,
+    status TEXT, -- 'Step 1: Document Verification', 'Step 2: Site Visit Pending', etc.
+    risk_score REAL,
+    cam_url TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(company_id) REFERENCES companies(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS documents (
+    id TEXT PRIMARY KEY,
+    application_id TEXT,
+    type TEXT, -- 'structured', 'unstructured'
+    name TEXT,
+    url TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(application_id) REFERENCES applications(id)
   );
 `);
+
+// Seed default users if empty
+const userCount = db.prepare("SELECT count(*) as count FROM users").get().count;
+if (userCount === 0) {
+  db.prepare("INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)")
+    .run("u1", "admin@bank.com", "admin123", "Super Admin", "admin");
+  db.prepare("INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)")
+    .run("u2", "employee@bank.com", "bank123", "Credit Officer", "employee");
+  db.prepare("INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)")
+    .run("u3", "owner@company.com", "owner123", "Company Promoter", "owner");
+  
+  // Seed a sample company and application
+  db.prepare("INSERT INTO companies (id, name, owner_id, status) VALUES (?, ?, ?, ?)")
+    .run("c1", "Acme Corp", "u3", "active");
+  db.prepare("INSERT INTO applications (id, company_id, status, risk_score) VALUES (?, ?, ?, ?)")
+    .run("a1", "c1", "Step 1: Document Verification Complete", 72.5);
+}
 
 async function startServer() {
   const app = express();
@@ -45,53 +76,50 @@ async function startServer() {
 
   app.use(express.json());
 
-  // API Routes
-  app.get("/api/campaigns", (req, res) => {
-    const campaigns = db.prepare("SELECT * FROM campaigns ORDER BY created_at DESC").all();
-    res.json(campaigns);
+  // Auth Routes
+  app.post("/api/login", (req, res) => {
+    const { email, password } = req.body;
+    const user = db.prepare("SELECT * FROM users WHERE email = ? AND password = ?").get(email, password);
+    if (user) {
+      // In a real app, use sessions or JWT. For this demo, we'll return user info.
+      res.json({ success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+    } else {
+      res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
   });
 
-  app.get("/api/campaigns/:id", (req, res) => {
-    const campaign = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(req.params.id);
-    const variants = db.prepare("SELECT * FROM variants WHERE campaign_id = ?").all(req.params.id);
-    res.json({ ...campaign, variants });
+  // Management Routes (Super Admin)
+  app.get("/api/admin/companies", (req, res) => {
+    const companies = db.prepare("SELECT * FROM companies").all();
+    res.json(companies);
   });
 
-  app.post("/api/campaigns", (req, res) => {
-    const { id, brief, strategy } = req.body;
-    db.prepare("INSERT INTO campaigns (id, brief, strategy, reasoning, status) VALUES (?, ?, ?, ?, ?)")
-      .run(id, brief, JSON.stringify(strategy), strategy.reasoning, "pending_approval");
+  app.post("/api/admin/companies", (req, res) => {
+    const { id, name, owner_id } = req.body;
+    db.prepare("INSERT INTO companies (id, name, owner_id, status) VALUES (?, ?, ?, ?)")
+      .run(id, name, owner_id, "active");
     res.json({ success: true });
   });
 
-  app.post("/api/variants", (req, res) => {
-    const { variants } = req.body;
-    const insert = db.prepare(`
-      INSERT INTO variants (id, campaign_id, subject, body, segment, send_time, tone, strategy_focus, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    const transaction = db.transaction((vars) => {
-      for (const v of vars) {
-        insert.run(v.id, v.campaign_id, v.subject, v.body, JSON.stringify(v.segment), v.send_time, v.tone, v.strategy_focus, "draft");
-      }
-    });
-    
-    transaction(variants);
-    res.json({ success: true });
+  // Verifier Routes (Bank Employee)
+  app.get("/api/employee/applications", (req, res) => {
+    const apps = db.prepare(`
+      SELECT a.*, c.name as company_name 
+      FROM applications a 
+      JOIN companies c ON a.company_id = c.id
+    `).all();
+    res.json(apps);
   });
 
-  app.post("/api/campaigns/:id/approve", (req, res) => {
-    db.prepare("UPDATE campaigns SET status = 'approved' WHERE id = ?").run(req.params.id);
-    db.prepare("UPDATE variants SET status = 'scheduled' WHERE campaign_id = ?").run(req.params.id);
-    res.json({ success: true });
-  });
-
-  app.post("/api/variants/:id/metrics", (req, res) => {
-    const { open_rate, click_rate } = req.body;
-    db.prepare("UPDATE variants SET open_rate = ?, click_rate = ?, status = 'completed' WHERE id = ?")
-      .run(open_rate, click_rate, req.params.id);
-    res.json({ success: true });
+  // Customer Routes (Company Owner)
+  app.get("/api/owner/status/:ownerId", (req, res) => {
+    const status = db.prepare(`
+      SELECT a.*, c.name as company_name 
+      FROM applications a 
+      JOIN companies c ON a.company_id = c.id 
+      WHERE c.owner_id = ?
+    `).get(req.params.ownerId);
+    res.json(status);
   });
 
   // Vite middleware for development
