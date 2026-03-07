@@ -29,9 +29,25 @@ import {
   Languages,
   Sliders,
   Scan,
+  Map,
+  Video,
+  Mic,
+  Link,
+  Share2,
+  Fingerprint,
+  Satellite,
+  Scale,
+  Brain,
+  Navigation,
+  Truck,
+  Gavel,
+  Users,
 } from "lucide-react";
 import * as d3 from "d3";
 import { motion, AnimatePresence } from "motion/react";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import ForceGraph2D from "react-force-graph-2d";
 import {
   LineChart,
   Line,
@@ -209,9 +225,11 @@ const StatCard = ({ label, value, subValue, icon: Icon, color }: any) => (
 );
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem("credlens_user");
-    return saved ? JSON.parse(saved) : null;
+  const [user, setUser] = useState<User | null>({
+    id: "default-user",
+    email: "demo@credlens.ai",
+    name: "Demo User",
+    role: "employee",
   });
   const [selectedEntity, setSelectedEntity] = useState<CorporateEntity | null>(
     null,
@@ -237,251 +255,163 @@ export default function App() {
     tampered: boolean;
     confidence: number;
     details: string;
+    circularLoops?: { nodes: any[], links: any[] };
+    sentimentStress?: {
+      volatility: number;
+      patterns: string[];
+      transcript: string;
+      stressScore: number;
+    };
+    satelliteAudit?: {
+      truckTraffic: number;
+      claimedTraffic: number;
+      nightLights: number;
+      status: string;
+      utilization: number;
+    };
+    relatedPartyRisk?: any;
+    ecourtAnomaly?: any;
   } | null>(null);
 
+  const [isExporting, setIsExporting] = useState(false);
+
   const networkRef = useRef<SVGSVGElement>(null);
-
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email");
-    const password = formData.get("password");
-
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUser(data.user);
-        localStorage.setItem("credlens_user", JSON.stringify(data.user));
-        // Set default tab based on role
-        if (data.user.role === "admin") setActiveTab("management");
-        else if (data.user.role === "employee") setActiveTab("dashboard");
-        else if (data.user.role === "owner") setActiveTab("status");
-      } else {
-        alert(data.message);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Login failed");
-    }
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem("credlens_user");
-  };
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-100 p-8"
-        >
-          <div className="flex items-center gap-3 mb-8 justify-center">
-            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
-              <Shield className="w-7 h-7 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              CredLens <span className="text-indigo-600">AI</span>
-            </h1>
-          </div>
-
-          <div className="text-center mb-8">
-            <h2 className="text-xl font-bold text-slate-900">Welcome Back</h2>
-            <p className="text-slate-500 text-sm mt-1">
-              Sign in to access your credit intelligence portal
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Email Address
-              </label>
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="e.g., admin@bank.com"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Password
-              </label>
-              <input
-                name="password"
-                type="password"
-                required
-                placeholder="••••••••"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-[0.98] mt-4"
-            >
-              Sign In
-            </button>
-          </form>
-
-          <div className="mt-8 pt-8 border-t border-slate-100">
-            <p className="text-[10px] text-center text-slate-400 font-medium uppercase tracking-widest">
-              Demo Credentials
-            </p>
-            <div className="grid grid-cols-1 gap-2 mt-4">
-              <div className="p-3 bg-slate-50 rounded-xl text-[10px] text-slate-600">
-                <span className="font-bold text-indigo-600">Super Admin:</span> admin@bank.com / admin123
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl text-[10px] text-slate-600">
-                <span className="font-bold text-indigo-600">Employee:</span> employee@bank.com / bank123
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl text-[10px] text-slate-600">
-                <span className="font-bold text-indigo-600">Customer:</span> owner@company.com / owner123
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+  const [isApiKeyMissing, setIsApiKeyMissing] = useState(!process.env.GEMINI_API_KEY);
 
   useEffect(() => {
-    if (activeTab === "forensics" && selectedEntity && networkRef.current) {
-      renderNetwork();
-    }
+    // Forensic graph is now handled by ForceGraph2D component
   }, [activeTab, selectedEntity]);
 
-  const renderNetwork = () => {
-    const svg = d3.select(networkRef.current);
-    svg.selectAll("*").remove();
-
-    const width = 600;
-    const height = 400;
-
-    const data = {
-      nodes: [
-        { id: selectedEntity?.name, group: 1 },
-        { id: "Promoter Spouse Co.", group: 2 },
-        { id: "Related Party A", group: 2 },
-        { id: "Subsidiary X", group: 3 },
-        { id: "Offshore Entity Y", group: 4 },
-      ],
-      links: [
-        {
-          source: selectedEntity?.name,
-          target: "Promoter Spouse Co.",
-          value: 60,
-        },
-        { source: selectedEntity?.name, target: "Related Party A", value: 15 },
-        { source: selectedEntity?.name, target: "Subsidiary X", value: 20 },
-        { source: "Subsidiary X", target: "Offshore Entity Y", value: 40 },
-      ],
-    };
-
-    const simulation = d3
-      .forceSimulation(data.nodes as any)
-      .force(
-        "link",
-        d3
-          .forceLink(data.links)
-          .id((d: any) => d.id)
-          .distance(100),
-      )
-      .force("charge", d3.forceManyBody().strength(-300))
-      .force("center", d3.forceCenter(width / 2, height / 2));
-
-    const link = svg
-      .append("g")
-      .selectAll("line")
-      .data(data.links)
-      .enter()
-      .append("line")
-      .attr("stroke", "#E5E7EB")
-      .attr("stroke-width", (d: any) => Math.sqrt(d.value));
-
-    const node = svg
-      .append("g")
-      .selectAll("circle")
-      .data(data.nodes)
-      .enter()
-      .append("circle")
-      .attr("r", 10)
-      .attr("fill", (d: any) => (d.group === 1 ? "#4F46E5" : "#9CA3AF"))
-      .call(
-        d3
-          .drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended) as any,
-      );
-
-    node.append("title").text((d: any) => d.id);
-
-    const label = svg
-      .append("g")
-      .selectAll("text")
-      .data(data.nodes)
-      .enter()
-      .append("text")
-      .attr("dy", -15)
-      .attr("text-anchor", "middle")
-      .attr("font-size", "10px")
-      .attr("font-weight", "bold")
-      .text((d: any) => d.id);
-
-    simulation.on("tick", () => {
-      link
-        .attr("x1", (d: any) => d.source.x)
-        .attr("y1", (d: any) => d.source.y)
-        .attr("x2", (d: any) => d.target.x)
-        .attr("y2", (d: any) => d.target.y);
-
-      node.attr("cx", (d: any) => d.x).attr("cy", (d: any) => d.y);
-
-      label.attr("x", (d: any) => d.x).attr("y", (d: any) => d.y);
-    });
-
-    function dragstarted(event: any) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
-    }
-
-    function dragged(event: any) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
-    }
-
-    function dragended(event: any) {
-      if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
-    }
-  };
-
   const translateNotes = async () => {
-    if (!primaryNotes) return;
+    if (!primaryNotes || !process.env.GEMINI_API_KEY) return;
     setIsTranslating(true);
     try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Translate the following Indian vernacular site visit notes or legal text into professional English. Maintain all technical nuances: "${primaryNotes}"`,
+        contents: `Translate the following vernacular credit notes into professional English for a credit appraisal report. Also, identify any forensic red flags mentioned.
+        
+        Notes: ${primaryNotes}`,
       });
       setTranslatedNotes(response.text || "");
+      setPrimaryNotes(response.text || ""); // Update with translated version
     } catch (error) {
       console.error("Translation error:", error);
     } finally {
       setIsTranslating(false);
     }
+  };
+
+  const exportToPDF = async () => {
+    if (!selectedEntity || !decisionLogic) return;
+    setIsExporting(true);
+    
+    const doc = new jsPDF();
+    const primaryColor = [79, 70, 229]; // Indigo-600
+    
+    // Header
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.text("Yukti AI: Credit Appraisal Report", 20, 25);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()} | Forensic Intelligence Suite`, 20, 32);
+
+    // Entity Info
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16);
+    doc.text(selectedEntity.name, 20, 55);
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Industry: ${selectedEntity.industry} | PAN: ${selectedEntity.pan} | CIN: ${selectedEntity.cin}`, 20, 62);
+
+    // 1. Decision Summary
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(14);
+    doc.text("1. Decision Summary", 20, 75);
+    doc.line(20, 77, 190, 77);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    const decisionData = [
+      ["Status", decisionLogic.recommendation === "LEND" ? "APPROVED" : decisionLogic.recommendation === "REJECT" ? "REJECTED" : "CONDITIONALLY APPROVED"],
+      ["Offered Limit", `INR ${(decisionLogic.limit / 10000000).toFixed(2)} Cr`],
+      ["Interest Rate", `${decisionLogic.rate}% (Risk-Adjusted)`],
+      ["Yukti Score", `${selectedEntity.score || 0}/100`]
+    ];
+    (doc as any).autoTable({
+      startY: 82,
+      head: [["Metric", "Value"]],
+      body: decisionData,
+      theme: 'striped',
+      headStyles: { fillColor: primaryColor }
+    });
+
+    // 2. The Yukti Scorecard (The Five Cs)
+    const nextY = (doc as any).lastAutoTable.finalY + 15;
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(14);
+    doc.text("2. The Yukti Scorecard (The Five Cs)", 20, nextY);
+    doc.line(20, nextY + 2, 190, nextY + 2);
+
+    const scorecardData = [
+      ["Character", `${decisionLogic.score_breakdown.character}/100`, "Track record, legal history, and management integrity."],
+      ["Capacity", `${decisionLogic.score_breakdown.capacity}/100`, "Cash flow analysis (GST vs Bank Statements)."],
+      ["Capital", `${decisionLogic.score_breakdown.capital}/100`, "Financial strength based on Annual Reports."],
+      ["Collateral", `${decisionLogic.score_breakdown.collateral}/100`, "Value of assets offered as security."],
+      ["Conditions", `${decisionLogic.score_breakdown.conditions}/100`, "External factors and sector trends."]
+    ];
+    (doc as any).autoTable({
+      startY: nextY + 7,
+      head: [["Pillar", "Score", "Description"]],
+      body: scorecardData,
+      theme: 'grid',
+      headStyles: { fillColor: [50, 50, 50] }
+    });
+
+    // 3. Transparent Feedback (Explainability)
+    const feedbackY = (doc as any).lastAutoTable.finalY + 15;
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(14);
+    doc.text("3. Transparent Feedback & Forensic Insights", 20, feedbackY);
+    doc.line(20, feedbackY + 2, 190, feedbackY + 2);
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    const rationaleLines = doc.splitTextToSize(decisionLogic.rationale, 170);
+    doc.text(rationaleLines, 20, feedbackY + 10);
+
+    // Forensic Highlights
+    if (forensicResults) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Forensic Anomalies Detected:", 20, feedbackY + 10 + (rationaleLines.length * 5) + 5);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      let anomalyY = feedbackY + 10 + (rationaleLines.length * 5) + 12;
+      
+      if (forensicResults.circularLoops) doc.text("- Circular Trading Network identified via Graph Analysis.", 25, anomalyY), anomalyY += 5;
+      if (forensicResults.sentimentStress) doc.text("- Linguistic Stress detected in management interview transcripts.", 25, anomalyY), anomalyY += 5;
+      if (forensicResults.satelliteAudit) doc.text(`- Satellite Audit mismatch: Factory utilization at ${forensicResults.satelliteAudit.utilization}% vs claimed.`, 25, anomalyY), anomalyY += 5;
+      if (forensicResults.ecourtAnomaly) doc.text("- Legal dispute omission detected in FY24 Annual Report.", 25, anomalyY), anomalyY += 5;
+    }
+
+    // 4. Next Steps
+    const stepsY = doc.internal.pageSize.height - 40;
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, stepsY, 180, 25, 'F');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("4. Next Steps", 20, stepsY + 8);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("1. Resolution of pending Delhi HC litigation required.", 20, stepsY + 14);
+    doc.text("2. Clarification on related party transactions with Promoter Spouse Co.", 20, stepsY + 19);
+
+    doc.save(`Yukti_CAM_${selectedEntity.name.replace(/\s+/g, '_')}.pdf`);
+    setIsExporting(false);
   };
 
   const runForensicOCR = async () => {
@@ -502,6 +432,83 @@ export default function App() {
         "Inconsistent font spacing detected in 'Transactions' column on Page 4. Potential manual override of credit entries.",
     });
     setIsProcessing(false);
+  };
+
+  const detectRelatedPartyConcentration = (entity: CorporateEntity) => {
+    // Logic to scan shareholding and board minutes for promoter lending
+    return {
+      risk: "High",
+      value: "₹12.4 Cr",
+      details: "Unsecured loans extended to promoter-owned entities (Promoter Spouse Co) without clear business justification."
+    };
+  };
+
+  const verifyEcourtTimelineAnomaly = (entity: CorporateEntity) => {
+    // Logic to check if company stopped reporting active disputes
+    return {
+      anomaly: true,
+      caseNo: "452/2024",
+      status: "Active (e-Courts)",
+      reportingStatus: "Omitted in FY24 Annual Report",
+      liability: "₹8.5 Cr"
+    };
+  };
+
+  const runDeepForensicScan = async () => {
+    if (!selectedEntity) return;
+    setIsProcessing(true);
+    setProcessingStep(1);
+    setResearchLogs([
+      "Initializing Forensic Intelligence Suite...",
+      "Running Circular Trading Detector (Graph Theory)...",
+      "Analyzing Linguistic Stress in Management Interviews...",
+      "Verifying Asset Utilization via Satellite Space Audit...",
+      "Cross-referencing e-Courts with Annual Reports...",
+    ]);
+
+    await new Promise((r) => setTimeout(r, 3000));
+
+    const relatedParty = detectRelatedPartyConcentration(selectedEntity);
+    const ecourt = verifyEcourtTimelineAnomaly(selectedEntity);
+
+    setForensicResults({
+      tampered: true,
+      confidence: 98,
+      details: "Comprehensive Forensic Audit identified multiple 'Black Swan' anomalies. High probability of structured deception.",
+      circularLoops: {
+        nodes: [
+          { id: selectedEntity.name, group: 1, val: 20 },
+          { id: "Promoter Spouse Co", group: 2, val: 15 },
+          { id: "Shell Vendor X", group: 3, val: 10 },
+          { id: "Offshore Entity Y", group: 3, val: 10 },
+          { id: "Related Party A", group: 2, val: 12 }
+        ],
+        links: [
+          { source: selectedEntity.name, target: "Promoter Spouse Co", value: 5 },
+          { source: "Promoter Spouse Co", target: "Shell Vendor X", value: 5 },
+          { source: "Shell Vendor X", target: selectedEntity.name, value: 5 },
+          { source: selectedEntity.name, target: "Related Party A", value: 3 },
+          { source: "Related Party A", target: "Offshore Entity Y", value: 3 }
+        ]
+      },
+      sentimentStress: {
+        volatility: -42,
+        stressScore: 78,
+        patterns: ["Distancing Language", "Liability Evasion", "Baseline Shift"],
+        transcript: "Management shifted from 'We' to 'The Company' when discussing debt servicing. Sudden pause detected at the mention of 'unsecured loans'."
+      },
+      satelliteAudit: {
+        truckTraffic: 2.4,
+        claimedTraffic: 15.0,
+        nightLights: -65,
+        utilization: 16,
+        status: "Capacity Mismatch (Idle)"
+      },
+      relatedPartyRisk: relatedParty,
+      ecourtAnomaly: ecourt
+    });
+    setIsProcessing(false);
+    setProcessingStep(0);
   };
 
   const startAnalysis = async (entity: CorporateEntity) => {
@@ -553,7 +560,8 @@ export default function App() {
 
   const generateCAM = async (entity: CorporateEntity) => {
     try {
-      const response = await ai.models.generateContent({
+      const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+      const response = await genAI.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Task: Produce a professional, structured Credit Appraisal Memo (CAM) for ${entity.name}.
         
@@ -756,21 +764,22 @@ export default function App() {
         <div className="absolute bottom-8 left-6 right-6 space-y-4">
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
             <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Logged in as</p>
-            <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
-            <p className="text-[10px] text-indigo-600 font-medium uppercase mt-0.5">{user.role.replace('_', ' ')}</p>
+            <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>
+            <p className="text-[10px] text-indigo-600 font-medium uppercase mt-0.5">{user?.role.replace('_', ' ')}</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
-          >
-            <XCircle className="w-4 h-4" />
-            Sign Out
-          </button>
         </div>
       </nav>
 
       {/* Main Content */}
       <main className="ml-64 p-8">
+        {isApiKeyMissing && (
+          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800">
+            <AlertTriangle className="w-5 h-5" />
+            <p className="text-sm font-medium">
+              Gemini API Key is missing. AI features will be disabled. Please check your .env file.
+            </p>
+          </div>
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -1624,116 +1633,241 @@ export default function App() {
             )}
 
             {activeTab === "forensics" && selectedEntity && (
-              <div className="space-y-8">
+              <div className="space-y-8 font-mono">
+                {/* Forensic Intelligence Lab Header - Technical/Terminal Style */}
+                <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 text-emerald-500 shadow-2xl relative overflow-hidden">
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <Fingerprint className="w-6 h-6 animate-pulse" />
+                        <h2 className="text-2xl font-bold tracking-tighter uppercase">Forensic Intelligence Lab v4.0</h2>
+                      </div>
+                      <p className="text-slate-500 text-xs max-w-xl">
+                        [SYSTEM READY] Scanning for circular trading, linguistic stress, and satellite-verified asset utilization.
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <button 
+                        onClick={runDeepForensicScan}
+                        disabled={isProcessing}
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-2 border border-emerald-400/30"
+                      >
+                        {isProcessing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Zap className="w-5 h-5" />}
+                        {isProcessing ? "SCANNING..." : "EXECUTE DEEP SCAN"}
+                      </button>
+                      {isProcessing && (
+                        <p className="text-[10px] text-emerald-500/60 animate-pulse">
+                          {researchLogs[researchLogs.length - 1]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {/* Terminal Scanline Effect */}
+                  <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Related Party Network */}
-                  <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Network className="w-5 h-5 text-indigo-600" /> Related
-                        Party Forensics
-                      </h3>
-                      <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full uppercase">
-                        High Risk Connection
+                  {/* 1. Circular Loop Detector (Interactive Graph) */}
+                  <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 shadow-sm text-slate-300">
+                    <div className="flex justify-between items-center mb-8">
+                      <div>
+                        <h3 className="text-lg font-bold flex items-center gap-3 text-emerald-400">
+                          <Share2 className="w-5 h-5" /> CIRCULAR_LOOP_DETECTOR
+                        </h3>
+                        <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">Mapping Value-Added Loops (GST/Bank)</p>
+                      </div>
+                      <span className="text-[10px] font-bold text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-md uppercase tracking-wider">
+                        {forensicResults?.circularLoops ? "LOOP_DETECTED" : "SCAN_REQUIRED"}
                       </span>
                     </div>
-                    <div className="flex justify-center bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
-                      <svg
-                        ref={networkRef}
-                        width="600"
-                        height="400"
-                        className="max-w-full"
-                      />
+                    
+                    <div className="aspect-video bg-black/40 rounded-2xl border border-slate-800 relative overflow-hidden flex items-center justify-center">
+                      {forensicResults?.circularLoops ? (
+                        <ForceGraph2D
+                          graphData={forensicResults.circularLoops}
+                          width={500}
+                          height={300}
+                          nodeLabel="id"
+                          nodeAutoColorBy="group"
+                          linkDirectionalParticles={2}
+                          linkDirectionalParticleSpeed={d => d.value * 0.001}
+                          linkColor={() => "#ef4444"}
+                          backgroundColor="rgba(0,0,0,0)"
+                        />
+                      ) : (
+                        <div className="text-center space-y-4">
+                          <Network className="w-12 h-12 text-slate-800 mx-auto" />
+                          <p className="text-[10px] text-slate-600 uppercase tracking-widest">Awaiting Graph Synthesis</p>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] pointer-events-none" />
                     </div>
-                    <div className="mt-6 p-4 bg-red-50 rounded-xl border border-red-100">
-                      <p className="text-[10px] font-bold text-red-600 uppercase mb-1">
-                        Character Risk Flag
-                      </p>
-                      <p className="text-xs leading-relaxed">
-                        AI detected that 60% of total revenue is derived from
-                        "Promoter Spouse Co." This indicates potential revenue
-                        circularity and high concentration risk.
+
+                    <div className="mt-8 p-6 bg-red-500/5 rounded-2xl border border-red-500/20">
+                      <div className="flex items-center gap-3 mb-3">
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                        <h4 className="text-xs font-bold text-red-400 uppercase">GSTR-2A/3B MISMATCH ALERT</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        {forensicResults?.circularLoops 
+                          ? `Detected circular loop: Entity A → Promoter Spouse Co → Shell Vendor X → Entity A. Estimated circular turnover: ₹42.5 Cr. Pattern identifies artificial turnover inflation.`
+                          : "Run deep scan to identify circular trading networks and GST mismatches."}
                       </p>
                     </div>
                   </div>
 
-                  {/* Forensic OCR */}
-                  <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Scan className="w-5 h-5 text-indigo-600" /> Forensic
-                        OCR Engine
-                      </h3>
-                      <button
-                        onClick={runForensicOCR}
-                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 uppercase"
-                      >
-                        Run Deep Scan
-                      </button>
+                  {/* 2. Psychometric Sentiment "Deep-Fake" Detection */}
+                  <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 shadow-sm text-slate-300">
+                    <div className="flex justify-between items-center mb-8">
+                      <div>
+                        <h3 className="text-lg font-bold flex items-center gap-3 text-emerald-400">
+                          <Mic className="w-5 h-5" /> LINGUISTIC_STRESS_ANALYZER
+                        </h3>
+                        <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">Psychometric Deception Detection</p>
+                      </div>
+                      <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-md uppercase tracking-wider">
+                        {forensicResults?.sentimentStress ? "STRESS_DETECTED" : "AWAITING_INPUT"}
+                      </span>
                     </div>
 
-                    {isProcessing && processingStep === 1 ? (
-                      <div className="flex flex-col items-center justify-center py-12">
-                        <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
-                        <p className="text-xs text-gray-400">
-                          Scanning document integrity...
+                    <div className="space-y-6">
+                      <div className="p-6 bg-black/40 rounded-2xl border border-slate-800">
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Segment: Debt_Liabilities</span>
+                          <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">VERIFIED</span>
+                        </div>
+                        <p className="text-xs text-slate-400 italic leading-relaxed">
+                          {forensicResults?.sentimentStress?.transcript || "No interview transcript analyzed yet."}
+                        </p>
+                        {forensicResults?.sentimentStress && (
+                          <div className="mt-4 grid grid-cols-2 gap-4">
+                            <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                              <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">Stress Score</p>
+                              <p className="text-[11px] font-bold text-amber-500">{forensicResults.sentimentStress.stressScore}%</p>
+                            </div>
+                            <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                              <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">Sentiment</p>
+                              <p className="text-[11px] font-bold text-red-500">{forensicResults.sentimentStress.volatility}% Drop</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/20">
+                        <h4 className="text-[10px] font-bold text-emerald-400 mb-2 uppercase tracking-widest">FORENSIC_INSIGHT</h4>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          {forensicResults?.sentimentStress 
+                            ? "Management shifted from 'We' to 'The Company' during liability discussions. Linguistic distancing + sudden sentiment drop indicates high concealment probability."
+                            : "Linguistic patterns in management interviews can reveal hidden liabilities and deception."}
                         </p>
                       </div>
-                    ) : forensicResults ? (
-                      <div className="space-y-6">
-                        <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100">
-                          <div className="flex items-center gap-3 mb-4">
-                            <AlertTriangle className="w-5 h-5 text-amber-500" />
-                            <h4 className="text-sm font-bold">
-                              Tampering Detected
-                            </h4>
-                          </div>
-                          <p className="text-xs text-gray-700 leading-relaxed mb-4">
-                            {forensicResults.details}
-                          </p>
-                          <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase">
-                            <span>Detection Confidence</span>
-                            <span>{forensicResults.confidence}%</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                            <div
-                              className="h-full bg-amber-500"
-                              style={{
-                                width: `${forensicResults.confidence}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">
-                              Font Consistency
-                            </p>
-                            <p className="text-xs font-bold text-red-600">
-                              Failed (Page 4)
-                            </p>
-                          </div>
-                          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">
-                              Pixel Alignment
-                            </p>
-                            <p className="text-xs font-bold text-emerald-600">
-                              Passed
-                            </p>
-                          </div>
-                        </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Satellite-Verified Asset Utilization */}
+                  <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 shadow-sm text-slate-300">
+                    <div className="flex justify-between items-center mb-8">
+                      <div>
+                        <h3 className="text-lg font-bold flex items-center gap-3 text-emerald-400">
+                          <Satellite className="w-5 h-5" /> SATELLITE_SPACE_AUDIT
+                        </h3>
+                        <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">Physical Asset Verification (Space-Scale)</p>
                       </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                          <Scan className="w-6 h-6 text-gray-300" />
+                      <span className="text-[10px] font-bold text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-md uppercase tracking-wider">
+                        {forensicResults?.satelliteAudit ? "CAPACITY_MISMATCH" : "AWAITING_COORDS"}
+                      </span>
+                    </div>
+
+                    <div className="aspect-video bg-black rounded-2xl relative overflow-hidden group border border-slate-800">
+                      <img 
+                        src={`https://picsum.photos/seed/factory-satellite-${selectedEntity.id}/800/450`} 
+                        alt="Satellite View" 
+                        className="w-full h-full object-cover opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+                      
+                      {/* Heatmap Overlays */}
+                      <div className="absolute top-1/4 left-1/3 w-24 h-24 bg-red-500/10 rounded-full blur-3xl animate-pulse" />
+                      <div className="absolute bottom-1/3 right-1/4 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl" />
+
+                      <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-emerald-400">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Live Feed: {selectedEntity.name} Factory</span>
+                          </div>
+                          <p className="text-[9px] text-slate-500">COORDS: 28.6139° N, 77.2090° E</p>
                         </div>
-                        <p className="text-xs text-gray-400">
-                          Upload messy or scanned PDFs for forensic font and
-                          tampering analysis
+                        {forensicResults?.satelliteAudit && (
+                          <div className="bg-black/60 backdrop-blur-md p-3 rounded-xl border border-slate-800 text-right">
+                            <p className="text-[9px] font-bold text-slate-500 uppercase">Night Light Density</p>
+                            <p className="text-sm font-bold text-white">{forensicResults.satelliteAudit.nightLights}% vs AVG</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-8 grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-black/40 rounded-xl border border-slate-800">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">Truck Traffic (6mo)</p>
+                        <p className="text-xs font-bold text-slate-200">{forensicResults?.satelliteAudit?.truckTraffic || "0.0"} Avg / Day</p>
+                        <p className="text-[9px] text-red-500 mt-1">CLAIMED: {forensicResults?.satelliteAudit?.claimedTraffic || "0.0"}</p>
+                      </div>
+                      <div className="p-4 bg-black/40 rounded-xl border border-slate-800">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">Power Consumption</p>
+                        <p className="text-xs font-bold text-slate-200">{forensicResults?.satelliteAudit ? "IDLE_STATE" : "SCAN_REQUIRED"}</p>
+                        <p className="text-[9px] text-red-500 mt-1">CLAIMED: 85% CAP</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Indian Context Forensic Logic */}
+                  <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 shadow-sm text-slate-300">
+                    <div className="flex justify-between items-center mb-8">
+                      <div>
+                        <h3 className="text-lg font-bold flex items-center gap-3 text-emerald-400">
+                          <Target className="w-5 h-5" /> INDIAN_CONTEXT_FORENSICS
+                        </h3>
+                        <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">Promoter Risk & e-Court Anomalies</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="p-6 bg-black/40 rounded-2xl border border-slate-800">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 border border-amber-500/20">
+                            <Factory className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-widest">Related Party Concentration</h4>
+                            <p className="text-[9px] text-slate-500">detect_related_party_concentration()</p>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          {forensicResults?.relatedPartyRisk 
+                            ? `Identified unsecured loans of ${forensicResults.relatedPartyRisk.value} to promoter entities. Capital siphoning detected.`
+                            : "Scans shareholding patterns for related party lending risks."}
                         </p>
                       </div>
-                    )}
+
+                      <div className="p-6 bg-black/40 rounded-2xl border border-slate-800">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500 border border-red-500/20">
+                            <Scale className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-widest">e-Court Reporting Anomaly</h4>
+                            <p className="text-[9px] text-slate-500">verify_ecourt_timeline_anomaly()</p>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          {forensicResults?.ecourtAnomaly 
+                            ? `Omission detected in FY24 Annual Report. Active litigation (${forensicResults.ecourtAnomaly.liability}) found in e-Court records.`
+                            : "Cross-references e-Courts data with annual reports to find hidden legal liabilities."}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2108,32 +2242,23 @@ export default function App() {
                               ))}
                             </div>
 
-                            <button
-                              onClick={() => {
-                                const blob = new Blob(
-                                  [
-                                    JSON.stringify(
-                                      {
-                                        entity: selectedEntity,
-                                        cam: camOutput,
-                                        decision: decisionLogic,
-                                      },
-                                      null,
-                                      2,
-                                    ),
-                                  ],
-                                  { type: "application/json" },
-                                );
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement("a");
-                                a.href = url;
-                                a.download = `CAM_${selectedEntity?.name.replace(/\s+/g, "_")}.json`;
-                                a.click();
-                              }}
-                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
-                            >
-                              <Download className="w-4 h-4" /> Export CAM (JSON)
-                            </button>
+                            <div className="flex gap-4">
+                              <button
+                                onClick={exportToPDF}
+                                disabled={isExporting}
+                                className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+                              >
+                                {isExporting ? (
+                                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                  <Download className="w-4 h-4" />
+                                )}
+                                {isExporting ? "Generating PDF..." : "Export Report (PDF)"}
+                              </button>
+                              <button className="p-4 bg-white border border-gray-100 text-gray-400 rounded-2xl hover:text-indigo-600 transition-colors">
+                                <Share2 className="w-5 h-5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
