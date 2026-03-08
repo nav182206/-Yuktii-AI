@@ -65,6 +65,8 @@ import {
   Pie,
 } from "recharts";
 import { GoogleGenAI, Type } from "@google/genai";
+import { Auth } from "./components/Auth";
+import { supabase } from "../supabase";
 
 // --- Types ---
 
@@ -72,7 +74,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "employee" | "owner";
+  role: "admin" | "employee" | "owner" | "approver";
 }
 
 interface CorporateEntity {
@@ -225,17 +227,48 @@ const StatCard = ({ label, value, subValue, icon: Icon, color }: any) => (
 );
 
 export default function App() {
-  const [user, setUser] = useState<User | null>({
-    id: "default-user",
-    email: "demo@credlens.ai",
-    name: "Demo User",
-    role: "employee",
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || "",
+          name: session.user.user_metadata?.full_name || "User",
+          role: session.user.user_metadata?.role || "employee",
+        });
+      }
+      setAuthLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || "",
+          name: session.user.user_metadata?.full_name || "User",
+          role: session.user.user_metadata?.role || "employee",
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const [entities, setEntities] = useState<CorporateEntity[]>(MOCK_CORPORATES);
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [newPromoterEmail, setNewPromoterEmail] = useState("");
   const [selectedEntity, setSelectedEntity] = useState<CorporateEntity | null>(
     null,
   );
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "ingestion" | "research" | "forensics" | "cam" | "management" | "status"
+    "dashboard" | "ingestion" | "research" | "forensics" | "cam" | "management" | "status" | "users"
   >("dashboard");
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
@@ -687,6 +720,64 @@ export default function App() {
     }
   };
 
+  const handleRegisterEntity = () => {
+    if (!newCompanyName || !newPromoterEmail) return;
+    
+    const newEntity: CorporateEntity = {
+      id: (entities.length + 1).toString(),
+      name: newCompanyName,
+      industry: "General",
+      pan: "NEWPAN" + Math.floor(Math.random() * 10000),
+      cin: "NEWCIN" + Math.floor(Math.random() * 1000000),
+      status: "pending",
+      score: null,
+      limit_requested: 0,
+      limit_recommended: null,
+      risk_premium: null,
+      last_updated: new Date().toISOString().split('T')[0],
+      primary_notes: `Registered by admin. Promoter: ${newPromoterEmail}`
+    };
+    
+    setEntities([newEntity, ...entities]);
+    setNewCompanyName("");
+    setNewPromoterEmail("");
+  };
+
+  const handleBulkIngestion = (type: 'structured' | 'unstructured') => {
+    setIsProcessing(true);
+    setProcessingStep(1);
+    setResearchLogs([
+      `Initializing bulk ${type} data ingestion...`,
+      "Connecting to secure data vault...",
+      "Validating file integrity...",
+      "Running OCR and pattern recognition...",
+      "Cross-referencing with MCA database...",
+      "Data ingestion complete."
+    ]);
+    
+    setTimeout(() => {
+      setIsProcessing(false);
+      setProcessingStep(0);
+    }, 3000);
+  };
+
+  const handleManageEntity = (entity: CorporateEntity) => {
+    setSelectedEntity(entity);
+    setActiveTab("dashboard");
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Auth onAuthSuccess={(u) => setUser(u)} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans selection:bg-indigo-100">
       {/* Sidebar */}
@@ -759,6 +850,24 @@ export default function App() {
               {item.label}
             </button>
           ))}
+
+          {user.role === "approver" && [
+            { id: "dashboard", label: "Approvals Queue", icon: BarChart3 },
+            { id: "cam", label: "CAM Review", icon: FileSearch },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === item.id
+                  ? "bg-indigo-50 text-indigo-600 shadow-sm"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              <item.icon className="w-4 h-4" />
+              {item.label}
+            </button>
+          ))}
         </div>
 
         <div className="absolute bottom-8 left-6 right-6 space-y-4">
@@ -767,6 +876,13 @@ export default function App() {
             <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>
             <p className="text-[10px] text-indigo-600 font-medium uppercase mt-0.5">{user?.role.replace('_', ' ')}</p>
           </div>
+          <button 
+            onClick={() => supabase.auth.signOut()}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
+          >
+            <XCircle className="w-4 h-4" />
+            Sign Out
+          </button>
         </div>
       </nav>
 
@@ -879,14 +995,21 @@ export default function App() {
                       <input
                         type="text"
                         placeholder="Company Name"
+                        value={newCompanyName}
+                        onChange={(e) => setNewCompanyName(e.target.value)}
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                       <input
                         type="text"
                         placeholder="Promoter Email"
+                        value={newPromoterEmail}
+                        onChange={(e) => setNewPromoterEmail(e.target.value)}
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                       />
-                      <button className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all">
+                      <button 
+                        onClick={handleRegisterEntity}
+                        className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all"
+                      >
                         Register Entity
                       </button>
                     </div>
@@ -903,11 +1026,17 @@ export default function App() {
                       Upload Structured (GST, ITR) and Unstructured (Annual Reports) data.
                     </p>
                     <div className="grid grid-cols-2 gap-4">
-                      <button className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all">
+                      <button 
+                        onClick={() => handleBulkIngestion('structured')}
+                        className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all"
+                      >
                         <FileText className="w-6 h-6 text-gray-300 mb-2" />
                         <span className="text-[10px] font-bold uppercase text-gray-400">Structured</span>
                       </button>
-                      <button className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all">
+                      <button 
+                        onClick={() => handleBulkIngestion('unstructured')}
+                        className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all"
+                      >
                         <Layers className="w-6 h-6 text-gray-300 mb-2" />
                         <span className="text-[10px] font-bold uppercase text-gray-400">Unstructured</span>
                       </button>
@@ -928,7 +1057,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {MOCK_CORPORATES.map((corp) => (
+                        {entities.map((corp) => (
                           <tr key={corp.id} className="text-sm">
                             <td className="px-6 py-4 font-bold">{corp.name}</td>
                             <td className="px-6 py-4 text-gray-500">owner@company.com</td>
@@ -938,7 +1067,12 @@ export default function App() {
                               </span>
                             </td>
                             <td className="px-6 py-4">
-                              <button className="text-indigo-600 font-bold text-xs">Manage</button>
+                              <button 
+                                onClick={() => handleManageEntity(corp)}
+                                className="text-indigo-600 font-bold text-xs"
+                              >
+                                Manage
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1068,7 +1202,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {MOCK_CORPORATES.map((entity) => (
+                        {entities.map((entity) => (
                           <tr
                             key={entity.id}
                             onClick={() => startAnalysis(entity)}

@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "employee" | "owner";
+  role: "admin" | "employee" | "owner" | "approver";
 }
 
 export interface CorporateEntity {
