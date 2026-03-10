@@ -10,6 +10,7 @@ import {
   XCircle,
   ChevronRight,
   Download,
+  Filter,
   Globe,
   Building2,
   BarChart3,
@@ -211,18 +212,26 @@ const MOCK_ALERTS = [
 // --- Components ---
 
 const StatCard = ({ label, value, subValue, icon: Icon, color }: any) => (
-  <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-    <div className="flex justify-between items-start mb-4">
-      <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
-        <Icon className={`w-5 h-5 ${color.replace("bg-", "text-")}`} />
+  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+    <div className="flex justify-between items-start mb-6">
+      <div className={`p-3 rounded-2xl ${color} shadow-lg shadow-indigo-600/10`}>
+        <Icon className="w-6 h-6 text-white" />
       </div>
-      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-        Live
-      </span>
+      <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-full">
+        <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
+        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Live</span>
+      </div>
     </div>
-    <p className="text-sm text-gray-500 mb-1">{label}</p>
-    <h3 className="text-2xl font-bold">{value}</h3>
-    {subValue && <p className="text-xs text-gray-400 mt-1">{subValue}</p>}
+    <div>
+      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+      <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{value}</h3>
+      {subValue && (
+        <p className="text-[10px] text-slate-500 font-medium mt-2 flex items-center gap-1">
+          <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+          {subValue}
+        </p>
+      )}
+    </div>
   </div>
 );
 
@@ -339,115 +348,140 @@ export default function App() {
   };
 
   const exportToPDF = async () => {
-    if (!selectedEntity || !decisionLogic) return;
-    setIsExporting(true);
-    
-    const doc = new jsPDF();
-    const primaryColor: [number, number, number] = [79, 70, 229]; // Indigo-600
-    
-    // Header
-    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.text("Yukti AI: Credit Appraisal Report", 20, 25);
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()} | Forensic Intelligence Suite`, 20, 32);
-
-    // Entity Info
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(16);
-    doc.text(selectedEntity.name, 20, 55);
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Industry: ${selectedEntity.industry} | PAN: ${selectedEntity.pan} | CIN: ${selectedEntity.cin}`, 20, 62);
-
-    // 1. Decision Summary
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setFontSize(14);
-    doc.text("1. Decision Summary", 20, 75);
-    doc.line(20, 77, 190, 77);
-    
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
-    const decisionData = [
-      ["Status", decisionLogic.recommendation === "LEND" ? "APPROVED" : decisionLogic.recommendation === "REJECT" ? "REJECTED" : "CONDITIONALLY APPROVED"],
-      ["Offered Limit", `INR ${(decisionLogic.limit / 10000000).toFixed(2)} Cr`],
-      ["Interest Rate", `${decisionLogic.rate}% (Risk-Adjusted)`],
-      ["Yukti Score", `${selectedEntity.score || 0}/100`]
-    ];
-    autoTable(doc, {
-      startY: 82,
-      head: [["Metric", "Value"]],
-      body: decisionData,
-      theme: 'striped',
-      headStyles: { fillColor: primaryColor }
-    });
-
-    // 2. The Yukti Scorecard (The Five Cs)
-    const nextY = (doc as any).lastAutoTable.finalY + 15;
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setFontSize(14);
-    doc.text("2. The Yukti Scorecard (The Five Cs)", 20, nextY);
-    doc.line(20, nextY + 2, 190, nextY + 2);
-
-    const scorecardData = [
-      ["Character", `${decisionLogic.score_breakdown.character}/100`, "Track record, legal history, and management integrity."],
-      ["Capacity", `${decisionLogic.score_breakdown.capacity}/100`, "Cash flow analysis (GST vs Bank Statements)."],
-      ["Capital", `${decisionLogic.score_breakdown.capital}/100`, "Financial strength based on Annual Reports."],
-      ["Collateral", `${decisionLogic.score_breakdown.collateral}/100`, "Value of assets offered as security."],
-      ["Conditions", `${decisionLogic.score_breakdown.conditions}/100`, "External factors and sector trends."]
-    ];
-    autoTable(doc, {
-      startY: nextY + 7,
-      head: [["Pillar", "Score", "Description"]],
-      body: scorecardData,
-      theme: 'grid',
-      headStyles: { fillColor: [50, 50, 50] }
-    });
-
-    // 3. Transparent Feedback (Explainability)
-    const feedbackY = (doc as any).lastAutoTable.finalY + 15;
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setFontSize(14);
-    doc.text("3. Transparent Feedback & Forensic Insights", 20, feedbackY);
-    doc.line(20, feedbackY + 2, 190, feedbackY + 2);
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    const rationaleLines = doc.splitTextToSize(decisionLogic.rationale, 170);
-    doc.text(rationaleLines, 20, feedbackY + 10);
-
-    // Forensic Highlights
-    if (forensicResults) {
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text("Forensic Anomalies Detected:", 20, feedbackY + 10 + (rationaleLines.length * 5) + 5);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      let anomalyY = feedbackY + 10 + (rationaleLines.length * 5) + 12;
-      
-      if (forensicResults.circularLoops) doc.text("- Circular Trading Network identified via Graph Analysis.", 25, anomalyY), anomalyY += 5;
-      if (forensicResults.sentimentStress) doc.text("- Linguistic Stress detected in management interview transcripts.", 25, anomalyY), anomalyY += 5;
-      if (forensicResults.satelliteAudit) doc.text(`- Satellite Audit mismatch: Factory utilization at ${forensicResults.satelliteAudit.utilization}% vs claimed.`, 25, anomalyY), anomalyY += 5;
-      if (forensicResults.ecourtAnomaly) doc.text("- Legal dispute omission detected in FY24 Annual Report.", 25, anomalyY), anomalyY += 5;
+    if (!selectedEntity) {
+      alert("Please select an entity first.");
+      return;
     }
+    if (!decisionLogic) {
+      alert("Analysis not complete. Please run the AI analysis first to generate the Credit Memo.");
+      return;
+    }
+    
+    setIsExporting(true);
+    try {
+      const doc = new jsPDF();
+      const primaryColor: [number, number, number] = [79, 70, 229]; // Indigo-600
+      
+      // Header
+      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.rect(0, 0, 210, 50, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(28);
+      doc.text("Yukti AI", 20, 25);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "normal");
+      doc.text("Forensic Credit Appraisal Report", 20, 35);
+      doc.setFontSize(9);
+      doc.text(`Generated: ${new Date().toLocaleString()} | Confidential`, 20, 42);
 
-    // 4. Next Steps
-    const stepsY = doc.internal.pageSize.height - 40;
-    doc.setFillColor(245, 245, 245);
-    doc.rect(15, stepsY, 180, 25, 'F');
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("4. Next Steps", 20, stepsY + 8);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text("1. Resolution of pending Delhi HC litigation required.", 20, stepsY + 14);
-    doc.text("2. Clarification on related party transactions with Promoter Spouse Co.", 20, stepsY + 19);
+      // Entity Info
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(selectedEntity.name, 20, 65);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Industry: ${selectedEntity.industry} | PAN: ${selectedEntity.pan} | CIN: ${selectedEntity.cin}`, 20, 72);
 
-    doc.save(`Yukti_CAM_${selectedEntity.name.replace(/\s+/g, '_')}.pdf`);
-    setIsExporting(false);
+      // 1. Executive Summary
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("1. Executive Summary", 20, 85);
+      doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setLineWidth(0.5);
+      doc.line(20, 87, 190, 87);
+      
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(11);
+      const decisionData = [
+        ["Recommendation", decisionLogic.recommendation === "LEND" ? "APPROVE (LEND)" : decisionLogic.recommendation === "REJECT" ? "REJECT" : "CAUTION / REVIEW"],
+        ["Proposed Limit", `INR ${(decisionLogic.limit / 10000000).toFixed(2)} Cr`],
+        ["Risk-Adjusted Rate", `${decisionLogic.rate}%`],
+        ["Yukti Forensic Score", `${selectedEntity.score || 0}/100`]
+      ];
+      autoTable(doc, {
+        startY: 92,
+        head: [["Parameter", "Assessment"]],
+        body: decisionData,
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor, fontSize: 10 },
+        bodyStyles: { fontSize: 10, cellPadding: 5 }
+      });
+
+      // 2. The Five Cs Scorecard
+      const nextY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("2. The Five Cs Scorecard", 20, nextY);
+      doc.line(20, nextY + 2, 190, nextY + 2);
+
+      const scorecardData = [
+        ["Character", `${decisionLogic.score_breakdown.character}/100`, "Promoter integrity, legal history, and market reputation."],
+        ["Capacity", `${decisionLogic.score_breakdown.capacity}/100`, "Cash flow adequacy and debt serviceability."],
+        ["Capital", `${decisionLogic.score_breakdown.capital}/100`, "Net worth, leverage, and equity commitment."],
+        ["Collateral", `${decisionLogic.score_breakdown.collateral}/100`, "Security coverage and asset quality."],
+        ["Conditions", `${decisionLogic.score_breakdown.conditions}/100`, "Industry headwinds and macroeconomic factors."]
+      ];
+      autoTable(doc, {
+        startY: nextY + 7,
+        head: [["Pillar", "Score", "Description"]],
+        body: scorecardData,
+        theme: 'grid',
+        headStyles: { fillColor: [30, 41, 59], fontSize: 10 },
+        bodyStyles: { fontSize: 9, cellPadding: 4 }
+      });
+
+      // 3. Rationale & Forensic Insights
+      const feedbackY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("3. Rationale & Forensic Insights", 20, feedbackY);
+      doc.line(20, feedbackY + 2, 190, feedbackY + 2);
+
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const rationaleLines = doc.splitTextToSize(decisionLogic.rationale, 170);
+      doc.text(rationaleLines, 20, feedbackY + 10);
+
+      // Forensic Highlights
+      if (forensicResults) {
+        const forensicY = feedbackY + 15 + (rationaleLines.length * 5);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text("Forensic Anomalies Detected:", 20, forensicY);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(153, 27, 27); // Red-800
+        let anomalyY = forensicY + 7;
+        
+        if (forensicResults.circularLoops) doc.text("• Circular Trading Network identified via Graph Analysis.", 25, anomalyY), anomalyY += 6;
+        if (forensicResults.sentimentStress) doc.text("• Linguistic Stress detected in management interview transcripts.", 25, anomalyY), anomalyY += 6;
+        if (forensicResults.satelliteAudit) doc.text(`• Satellite Audit mismatch: Factory utilization at ${forensicResults.satelliteAudit.utilization}% vs claimed.`, 25, anomalyY), anomalyY += 6;
+        if (forensicResults.ecourtAnomaly) doc.text("• Legal dispute omission detected in FY24 Annual Report.", 25, anomalyY), anomalyY += 6;
+      }
+
+      // Footer
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Page ${i} of ${pageCount} | Yukti AI Forensic Suite | Proprietary & Confidential`, 105, 285, { align: 'center' });
+      }
+
+      doc.save(`Yukti_CAM_${selectedEntity.name.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      alert("Failed to generate PDF. Please check the console for details.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const runForensicOCR = async () => {
@@ -807,6 +841,8 @@ export default function App() {
     );
     setEntities(updatedEntities);
     setSelectedEntity({ ...selectedEntity, status });
+    
+    alert(`Application ${status === 'completed' ? 'Approved' : 'Rejected'} successfully.`);
   };
 
   const handleManageEntity = (entity: CorporateEntity) => {
@@ -828,105 +864,106 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans selection:bg-indigo-100">
-      {/* Sidebar */}
-      <nav className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-100 z-50 p-6">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-            <Shield className="text-white w-6 h-6" />
+      {/* Sidebar Navigation */}
+      <nav className="fixed left-0 top-0 bottom-0 w-64 glass-dark z-50 flex flex-col">
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white tracking-tight">Yukti AI</h1>
+              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest leading-none">Forensic Suite</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-lg leading-none">Yukti AI</h1>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-              Credit Decisioning
-            </p>
+
+          <div className="space-y-1">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4 px-4">Navigation</p>
+            {user.role === "admin" && [
+              { id: "management", label: "Management", icon: Building2 },
+              { id: "users", label: "User Accounts", icon: Briefcase },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  activeTab === item.id
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${activeTab === item.id ? "text-white" : "text-slate-500"}`} />
+                {item.label}
+              </button>
+            ))}
+
+            {user.role === "employee" && [
+              { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+              { id: "ingestion", label: "Data Hub", icon: Database },
+              { id: "research", label: "AI Research", icon: Globe },
+              { id: "forensics", label: "Forensics", icon: Network },
+              { id: "cam", label: "Credit Memo", icon: FileText },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  activeTab === item.id
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${activeTab === item.id ? "text-white" : "text-slate-500"}`} />
+                {item.label}
+              </button>
+            ))}
+
+            {user.role === "owner" && [
+              { id: "status", label: "Status Tracker", icon: Activity },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  activeTab === item.id
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${activeTab === item.id ? "text-white" : "text-slate-500"}`} />
+                {item.label}
+              </button>
+            ))}
+
+            {user.role === "approver" && [
+              { id: "dashboard", label: "Approvals Queue", icon: BarChart3 },
+              { id: "cam", label: "CAM Review", icon: FileSearch },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  activeTab === item.id
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${activeTab === item.id ? "text-white" : "text-slate-500"}`} />
+                {item.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="space-y-2">
-          {user.role === "admin" && [
-            { id: "management", label: "Management", icon: Building2 },
-            { id: "users", label: "User Accounts", icon: Briefcase },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === item.id
-                  ? "bg-indigo-50 text-indigo-600 shadow-sm"
-                  : "text-gray-500 hover:bg-gray-50"
-              }`}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </button>
-          ))}
-
-          {user.role === "employee" && [
-            { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-            { id: "ingestion", label: "Data Hub", icon: Database },
-            { id: "research", label: "AI Research", icon: Globe },
-            { id: "forensics", label: "Forensics", icon: Network },
-            { id: "cam", label: "Credit Memo", icon: FileText },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === item.id
-                  ? "bg-indigo-50 text-indigo-600 shadow-sm"
-                  : "text-gray-500 hover:bg-gray-50"
-              }`}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </button>
-          ))}
-
-          {user.role === "owner" && [
-            { id: "status", label: "Status Tracker", icon: Activity },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === item.id
-                  ? "bg-indigo-50 text-indigo-600 shadow-sm"
-                  : "text-gray-500 hover:bg-gray-50"
-              }`}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </button>
-          ))}
-
-          {user.role === "approver" && [
-            { id: "dashboard", label: "Approvals Queue", icon: BarChart3 },
-            { id: "cam", label: "CAM Review", icon: FileSearch },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === item.id
-                  ? "bg-indigo-50 text-indigo-600 shadow-sm"
-                  : "text-gray-500 hover:bg-gray-50"
-              }`}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="absolute bottom-8 left-6 right-6 space-y-4">
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Logged in as</p>
-            <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>
-            <p className="text-[10px] text-indigo-600 font-medium uppercase mt-0.5">{user?.role.replace('_', ' ')}</p>
+        <div className="mt-auto p-6 space-y-4">
+          <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+            <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Session</p>
+            <p className="text-xs font-bold text-white truncate">{user?.name}</p>
+            <p className="text-[10px] text-indigo-400 font-medium uppercase mt-0.5">{user?.role}</p>
           </div>
           <button 
             onClick={() => supabase.auth.signOut()}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-all"
           >
             <XCircle className="w-4 h-4" />
             Sign Out
@@ -935,96 +972,67 @@ export default function App() {
       </nav>
 
       {/* Main Content */}
-      <main className="ml-64 p-8">
+      <main className="ml-64 min-h-screen">
         {isApiKeyMissing && (
-          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800">
+          <div className="mx-8 mt-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800">
             <AlertTriangle className="w-5 h-5" />
             <p className="text-sm font-medium">
-              Gemini API Key is missing. AI features will be disabled. Please check your .env file.
+              Gemini API Key is missing. AI features will be disabled.
             </p>
           </div>
         )}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <header className="flex justify-between items-center mb-12">
-              <div>
-                <h2 className="text-2xl font-bold">
-                  {activeTab === "dashboard" && "Underwriting Dashboard"}
-                  {activeTab === "management" && "Management Dashboard"}
-                  {activeTab === "status" && "Application Status Tracker"}
-                  {activeTab === "users" && "User Account Management"}
-                  {activeTab !== "dashboard" &&
-                    activeTab !== "management" &&
-                    activeTab !== "status" &&
-                    activeTab !== "users" &&
-                    !selectedEntity &&
-                    "Selection Required"}
-                  {activeTab === "ingestion" &&
-                    selectedEntity &&
-                    `Data Hub: ${selectedEntity.name}`}
-                  {activeTab === "research" &&
-                    selectedEntity &&
-                    `AI Research: ${selectedEntity.name}`}
-                  {activeTab === "forensics" &&
-                    selectedEntity &&
-                    `Forensic Analysis: ${selectedEntity.name}`}
-                  {activeTab === "cam" &&
-                    selectedEntity &&
-                    `Credit Memo: ${selectedEntity.name}`}
-                </h2>
-                <p className="text-gray-500 text-sm mt-1">
-                  {activeTab === "dashboard" &&
-                    "Real-time overview of corporate credit applications"}
-                  {activeTab === "management" &&
-                    "System administration and data ingestion control"}
-                  {activeTab === "status" &&
-                    "Track the real-time progress of your loan application"}
-                  {activeTab !== "dashboard" &&
-                    activeTab !== "management" &&
-                    activeTab !== "status" &&
-                    activeTab !== "users" &&
-                    !selectedEntity &&
-                    "Please select a corporate entity from the dashboard to begin analysis"}
-                  {activeTab === "ingestion" &&
-                    selectedEntity &&
-                    "Stitching structured and unstructured data points"}
-                  {activeTab === "research" &&
-                    selectedEntity &&
-                    "Deep intelligence from MCA, e-Courts, and News"}
-                  {activeTab === "forensics" &&
-                    selectedEntity &&
-                    "Network analysis and OCR tampering detection"}
-                  {activeTab === "cam" &&
-                    selectedEntity &&
-                    "AI-synthesized final credit recommendation"}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 overflow-hidden"
-                    >
-                      <img
-                        src={`https://picsum.photos/seed/user${i}/32/32`}
-                        alt="user"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  ))}
+        
+        <div className="p-8 max-w-7xl mx-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <header className="flex justify-between items-end mb-12">
+                <div>
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 uppercase tracking-[0.2em] mb-2">
+                    <div className="w-1 h-1 bg-indigo-600 rounded-full" />
+                    Yukti Intelligence
+                  </div>
+                  <h2 className="text-4xl font-bold tracking-tight text-slate-900">
+                    {activeTab === "dashboard" && "Underwriting Suite"}
+                    {activeTab === "management" && "System Management"}
+                    {activeTab === "status" && "Application Tracker"}
+                    {activeTab === "users" && "User Accounts"}
+                    {activeTab !== "dashboard" &&
+                      activeTab !== "management" &&
+                      activeTab !== "status" &&
+                      activeTab !== "users" &&
+                      !selectedEntity &&
+                      "Selection Required"}
+                    {activeTab === "ingestion" &&
+                      selectedEntity &&
+                      `Data Hub: ${selectedEntity.name}`}
+                    {activeTab === "research" &&
+                      selectedEntity &&
+                      `AI Research: ${selectedEntity.name}`}
+                    {activeTab === "forensics" &&
+                      selectedEntity &&
+                      `Forensic Analysis: ${selectedEntity.name}`}
+                    {activeTab === "cam" &&
+                      selectedEntity &&
+                      `Credit Memo: ${selectedEntity.name}`}
+                  </h2>
                 </div>
-                <button className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors">
-                  <Clock className="w-5 h-5 text-gray-400" />
-                </button>
-              </div>
-            </header>
+                
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">System Status</p>
+                    <div className="flex items-center gap-2 text-emerald-500 text-xs font-bold">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      All Engines Online
+                    </div>
+                  </div>
+                </div>
+              </header>
 
             {activeTab === "management" && (
               <div className="space-y-8">
@@ -1221,7 +1229,7 @@ export default function App() {
             )}
 
             {activeTab === "dashboard" && (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <StatCard
@@ -1229,93 +1237,97 @@ export default function App() {
                     value="24"
                     subValue="+3 from last week"
                     icon={Briefcase}
-                    color="bg-blue-500"
+                    color="bg-indigo-600"
                   />
                   <StatCard
                     label="Avg. Processing Time"
                     value="4.2 Days"
                     subValue="Down from 18 days (Manual)"
                     icon={Clock}
-                    color="bg-indigo-500"
+                    color="bg-slate-900"
                   />
                   <StatCard
                     label="Approval Rate"
                     value="68%"
                     subValue="Target: 70%"
                     icon={CheckCircle2}
-                    color="bg-emerald-500"
+                    color="bg-emerald-600"
                   />
                   <StatCard
                     label="Risk Alerts"
                     value="12"
                     subValue="4 High Priority"
                     icon={AlertTriangle}
-                    color="bg-amber-500"
+                    color="bg-rose-600"
                   />
                 </div>
 
                 {/* Application Table */}
-                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-                    <h3 className="font-bold">Recent Applications</h3>
-                    <div className="flex gap-2">
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">Recent Applications</h3>
+                      <p className="text-xs text-slate-500 mt-1">Real-time overview of corporate credit pipeline</p>
+                    </div>
+                    <div className="flex gap-3">
                       <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                           type="text"
                           placeholder="Search PAN/CIN..."
-                          className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-64"
+                          className="pl-11 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-72 transition-all"
                         />
                       </div>
+                      <button className="p-2.5 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
+                        <Filter className="w-4 h-4 text-slate-500" />
+                      </button>
                     </div>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
                       <thead>
-                        <tr className="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                          <th className="px-6 py-4">Corporate Entity</th>
-                          <th className="px-6 py-4">Industry</th>
-                          <th className="px-6 py-4">Limit Requested</th>
-                          <th className="px-6 py-4">Status</th>
-                          <th className="px-6 py-4">Score</th>
-                          <th className="px-6 py-4 text-right">Action</th>
+                        <tr className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          <th className="px-8 py-5">Corporate Entity</th>
+                          <th className="px-8 py-5">Industry</th>
+                          <th className="px-8 py-5">Limit Requested</th>
+                          <th className="px-8 py-5">Status</th>
+                          <th className="px-8 py-5">Score</th>
+                          <th className="px-8 py-5 text-right">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-slate-50">
                         {entities.map((entity) => (
                           <tr
                             key={entity.id}
                             onClick={() => startAnalysis(entity)}
-                            className="hover:bg-gray-50 transition-colors group cursor-pointer"
+                            className="hover:bg-slate-50/80 transition-all group cursor-pointer"
                           >
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                                  <Building2 className="w-4 h-4 text-gray-400" />
+                            <td className="px-8 py-6">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-white transition-colors">
+                                  <Building2 className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
                                 </div>
                                 <div>
-                                  <p className="text-sm font-bold">
+                                  <p className="text-sm font-bold text-slate-900">
                                     {entity.name}
                                   </p>
-                                  <p className="text-[10px] text-gray-400">
+                                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">
                                     {entity.pan}
                                   </p>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
-                              <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-md">
+                            <td className="px-8 py-6">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg">
                                 {entity.industry}
                               </span>
                             </td>
-                            <td className="px-6 py-4">
-                              <p className="text-sm font-bold">
-                                ₹
-                                {(entity.limit_requested / 10000000).toFixed(1)}{" "}
-                                Cr
+                            <td className="px-8 py-6">
+                              <p className="text-sm font-bold text-slate-900">
+                                ₹{(entity.limit_requested / 10000000).toFixed(1)} Cr
                               </p>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-8 py-6">
                               <div className="flex items-center gap-2">
                                 <div
                                   className={`w-1.5 h-1.5 rounded-full ${
@@ -1324,34 +1336,34 @@ export default function App() {
                                       : entity.status === "processing"
                                         ? "bg-amber-500 animate-pulse"
                                         : entity.status === "rejected"
-                                          ? "bg-red-500"
-                                          : "bg-gray-300"
+                                          ? "bg-rose-500"
+                                          : "bg-slate-300"
                                   }`}
                                 />
-                                <span className="text-xs capitalize">
+                                <span className="text-xs font-medium text-slate-600 capitalize">
                                   {entity.status}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-8 py-6">
                               {entity.score ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                     <div
-                                      className={`h-full ${entity.score > 70 ? "bg-emerald-500" : "bg-amber-500"}`}
+                                      className={`h-full transition-all duration-1000 ${entity.score > 70 ? "bg-emerald-500" : "bg-amber-500"}`}
                                       style={{ width: `${entity.score}%` }}
                                     />
                                   </div>
-                                  <span className="text-xs font-bold">
+                                  <span className="text-xs font-bold text-slate-900">
                                     {entity.score}
                                   </span>
                                 </div>
                               ) : (
-                                <span className="text-gray-300">--</span>
+                                <span className="text-slate-300 font-mono text-xs">--</span>
                               )}
                             </td>
-                            <td className="px-6 py-4 text-right">
-                              <button className="p-2 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">
+                            <td className="px-8 py-6 text-right">
+                              <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
                                 <ChevronRight className="w-5 h-5" />
                               </button>
                             </td>
@@ -2311,6 +2323,39 @@ export default function App() {
                           </h3>
 
                           <div className="space-y-8">
+                            {user?.role === "approver" && (
+                              <div className="p-6 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl space-y-4">
+                                <div className="flex items-center gap-2 text-indigo-400 mb-2">
+                                  <Shield className="w-4 h-4" />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest">Approver Actions</span>
+                                </div>
+                                {selectedEntity.status === 'completed' ? (
+                                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-center text-xs font-bold">
+                                    ✓ Application Approved
+                                  </div>
+                                ) : selectedEntity.status === 'rejected' ? (
+                                  <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-center text-xs font-bold">
+                                    ✕ Application Rejected
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col gap-3">
+                                    <button
+                                      onClick={() => handleApproval("completed")}
+                                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" /> Approve Application
+                                    </button>
+                                    <button
+                                      onClick={() => handleApproval("rejected")}
+                                      className="w-full py-3 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2"
+                                    >
+                                      <XCircle className="w-4 h-4" /> Reject Application
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest mb-1">
@@ -2456,28 +2501,11 @@ export default function App() {
                               ))}
                             </div>
 
-                            {user?.role === "approver" && (
-                              <div className="flex gap-4">
-                                <button
-                                  onClick={() => handleApproval("completed")}
-                                  className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
-                                >
-                                  <CheckCircle2 className="w-4 h-4" /> Approve
-                                </button>
-                                <button
-                                  onClick={() => handleApproval("rejected")}
-                                  className="flex-1 py-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2"
-                                >
-                                  <XCircle className="w-4 h-4" /> Reject
-                                </button>
-                              </div>
-                            )}
-
                             <div className="flex gap-4">
                               <button
                                 onClick={exportToPDF}
                                 disabled={isExporting}
-                                className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+                                className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
                               >
                                 {isExporting ? (
                                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -2486,7 +2514,7 @@ export default function App() {
                                 )}
                                 {isExporting ? "Generating PDF..." : "Export Report (PDF)"}
                               </button>
-                              <button className="p-4 bg-white border border-gray-100 text-gray-400 rounded-2xl hover:text-indigo-600 transition-colors">
+                              <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl hover:text-white hover:bg-white/10 transition-all">
                                 <Share2 className="w-5 h-5" />
                               </button>
                             </div>
@@ -2535,9 +2563,10 @@ export default function App() {
             )}
           </motion.div>
         </AnimatePresence>
-      </main>
-    </div>
-  );
+      </div>
+    </main>
+  </div>
+);
 }
 
 const TargetIcon = ({ className }: any) => (
