@@ -319,6 +319,7 @@ export default function App() {
   } | null>(null);
 
   const [isExporting, setIsExporting] = useState(false);
+  const [approvalFeedback, setApprovalFeedback] = useState<{type: 'success' | 'error', msg: string} | null>(null);
 
   const networkRef = useRef<SVGSVGElement>(null);
   const [isApiKeyMissing, setIsApiKeyMissing] = useState(!process.env.GEMINI_API_KEY);
@@ -842,7 +843,12 @@ export default function App() {
     setEntities(updatedEntities);
     setSelectedEntity({ ...selectedEntity, status });
     
-    alert(`Application ${status === 'completed' ? 'Approved' : 'Rejected'} successfully.`);
+    setApprovalFeedback({
+      type: 'success',
+      msg: `Application ${status === 'completed' ? 'Approved' : 'Rejected'} successfully. System records updated.`
+    });
+
+    setTimeout(() => setApprovalFeedback(null), 5000);
   };
 
   const handleManageEntity = (entity: CorporateEntity) => {
@@ -2556,6 +2562,100 @@ export default function App() {
                           ))}
                         </div>
                       </div>
+
+                      {user?.role === "approver" && (
+                        <div className="p-10 bg-slate-900 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2" />
+                          <div className="relative z-10">
+                            <div className="flex items-center gap-4 mb-8">
+                              <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                                <Gavel className="w-7 h-7 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-2xl font-bold tracking-tight">Final Approval Decision</h3>
+                                <p className="text-sm text-slate-400">Submit your final verdict based on forensic analysis and reports</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-8">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+                                  <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest mb-4">Verification Checklist</p>
+                                  <div className="space-y-3">
+                                    {[
+                                      "Forensic anomalies reviewed",
+                                      "Satellite audit verified",
+                                      "Circular trading checks passed",
+                                      "Financial ratios within limits"
+                                    ].map((check, i) => (
+                                      <div key={i} className="flex items-center gap-3 text-xs text-slate-300">
+                                        <div className="w-4 h-4 rounded border border-white/20 flex items-center justify-center">
+                                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                        </div>
+                                        {check}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+                                  <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest mb-4">Source Reports</p>
+                                  <div className="space-y-3">
+                                    {[
+                                      "GST_Returns_FY24.pdf",
+                                      "Bank_Statement_HDFC.xlsx",
+                                      "Site_Visit_Photos.zip"
+                                    ].map((report, i) => (
+                                      <div key={i} className="flex items-center justify-between text-xs text-slate-300">
+                                        <div className="flex items-center gap-2">
+                                          <FileText className="w-3 h-3 text-indigo-400" />
+                                          {report}
+                                        </div>
+                                        <span className="text-[8px] font-bold text-emerald-400 uppercase">Verified</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-indigo-300 mb-3 ml-1">Approver Rationale & Comments</label>
+                                <textarea 
+                                  placeholder="Enter your final assessment rationale here..."
+                                  className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[160px] placeholder:text-slate-600 transition-all"
+                                />
+                              </div>
+
+                              {approvalFeedback && (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-bold ${
+                                    approvalFeedback.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                                  }`}
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  {approvalFeedback.msg}
+                                </motion.div>
+                              )}
+
+                              <div className="flex gap-4">
+                                <button
+                                  onClick={() => handleApproval("completed")}
+                                  className="flex-1 py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[1.5rem] font-bold text-sm transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/40 active:scale-[0.98]"
+                                >
+                                  <CheckCircle2 className="w-5 h-5" /> Approve Application
+                                </button>
+                                <button
+                                  onClick={() => handleApproval("rejected")}
+                                  className="flex-1 py-5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 rounded-[1.5rem] font-bold text-sm transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                                >
+                                  <XCircle className="w-5 h-5" /> Reject Application
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
