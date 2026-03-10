@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../../supabase';
-import { Shield, Mail, Lock, User, Briefcase, ChevronRight, AlertCircle } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '../../supabase';
+import { Shield, Mail, Lock, User, Briefcase, ChevronRight, AlertCircle, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface AuthProps {
@@ -81,6 +81,15 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     }
   };
 
+  const handleMockLogin = (role: 'admin' | 'employee' | 'owner' | 'approver') => {
+    onAuthSuccess({
+      id: 'mock-id',
+      email: `demo-${role}@yukti.ai`,
+      name: `Demo ${role.charAt(0).toUpperCase() + role.slice(1)}`,
+      role: role,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 font-sans">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -97,7 +106,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-600/20">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">CredLens AI</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Yukti AI</h1>
           <p className="text-gray-400 text-sm mt-2">
             {isLogin ? "Sign in to your command center" : "Create your forensic identity"}
           </p>
@@ -221,6 +230,43 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
         </form>
+
+        <div className="mt-8 pt-6 border-t border-white/10">
+          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center mb-4">
+            Quick Access (Demo Mode)
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handleMockLogin('admin')}
+              className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-gray-300 transition-all flex items-center justify-center gap-2"
+            >
+              <Play className="w-3 h-3" /> Admin
+            </button>
+            <button
+              onClick={() => handleMockLogin('employee')}
+              className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-gray-300 transition-all flex items-center justify-center gap-2"
+            >
+              <Play className="w-3 h-3" /> Employee
+            </button>
+            <button
+              onClick={() => handleMockLogin('approver')}
+              className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-gray-300 transition-all flex items-center justify-center gap-2"
+            >
+              <Play className="w-3 h-3" /> Approver
+            </button>
+            <button
+              onClick={() => handleMockLogin('owner')}
+              className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-gray-300 transition-all flex items-center justify-center gap-2"
+            >
+              <Play className="w-3 h-3" /> Owner
+            </button>
+          </div>
+          {!isSupabaseConfigured && (
+            <p className="mt-4 text-[10px] text-amber-500/80 text-center italic">
+              Supabase not configured. Use Demo Mode to explore.
+            </p>
+          )}
+        </div>
 
         <div className="mt-6 text-center">
           <button

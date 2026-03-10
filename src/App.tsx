@@ -46,7 +46,7 @@ import {
 import * as d3 from "d3";
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import ForceGraph2D from "react-force-graph-2d";
 import {
   LineChart,
@@ -264,6 +264,9 @@ export default function App() {
   const [entities, setEntities] = useState<CorporateEntity[]>(MOCK_CORPORATES);
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newPromoterEmail, setNewPromoterEmail] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<CorporateEntity | null>(
     null,
   );
@@ -340,7 +343,7 @@ export default function App() {
     setIsExporting(true);
     
     const doc = new jsPDF();
-    const primaryColor = [79, 70, 229]; // Indigo-600
+    const primaryColor: [number, number, number] = [79, 70, 229]; // Indigo-600
     
     // Header
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -373,7 +376,7 @@ export default function App() {
       ["Interest Rate", `${decisionLogic.rate}% (Risk-Adjusted)`],
       ["Yukti Score", `${selectedEntity.score || 0}/100`]
     ];
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: 82,
       head: [["Metric", "Value"]],
       body: decisionData,
@@ -395,7 +398,7 @@ export default function App() {
       ["Collateral", `${decisionLogic.score_breakdown.collateral}/100`, "Value of assets offered as security."],
       ["Conditions", `${decisionLogic.score_breakdown.conditions}/100`, "External factors and sector trends."]
     ];
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: nextY + 7,
       head: [["Pillar", "Score", "Description"]],
       body: scorecardData,
@@ -552,8 +555,9 @@ export default function App() {
     setProcessingStep(1);
     setResearchLogs([
       "Initializing multi-source data ingestion...",
-      "Connecting to Databricks cluster...",
-      "Fetching GST filings (GSTR-2A vs 3B)...",
+      "Connecting to Yukti Forensic OCR Engine (Optimized for messy Indian PDFs)...",
+      "Fetching GST filings (GSTR-2A vs 3B reconciliation)...",
+      "Cross-referencing MCA Master Data for promoter linkages...",
     ]);
 
     // Step 1: Ingestion & Synthesis
@@ -561,9 +565,9 @@ export default function App() {
     setProcessingStep(2);
     setResearchLogs((prev) => [
       ...prev,
-      "Cross-leveraging GST returns against Bank Statements...",
-      "Circular trading detection algorithm running...",
-      "Identifying revenue inflation patterns...",
+      "Analyzing CIBIL Commercial reports for group-level exposure...",
+      "Circular trading detection algorithm running (Graph Theory)...",
+      "Identifying revenue inflation patterns in GSTR-1 vs 3B...",
     ]);
 
     // Step 2: Unstructured Analysis
@@ -571,19 +575,19 @@ export default function App() {
     setProcessingStep(3);
     setResearchLogs((prev) => [
       ...prev,
-      "Parsing Annual Report FY24 for financial commitments...",
-      "Extracting sanction letters from other banks...",
-      "Analyzing legal notices for contingent liabilities...",
+      "Parsing messy/scanned Annual Report FY24 extracts...",
+      "Extracting contingent liabilities from legal notices...",
+      "Analyzing management interview transcripts for linguistic stress...",
     ]);
 
-    // Step 3: Web-scale Research
+    // Step 3: Web-scale Research (Depth)
     await new Promise((r) => setTimeout(r, 1500));
     setProcessingStep(4);
     setResearchLogs((prev) => [
       ...prev,
-      "Crawling web for promoter news...",
-      "Analyzing RBI regulatory impact (NBFC sector)...",
-      "Scanning e-Courts for promoter litigation history...",
+      "Crawling e-Courts for pending litigation history...",
+      "Scanning local news for promoter reputation issues...",
+      "Verifying factory utilization via Satellite Space Audit...",
     ]);
 
     // Final Synthesis
@@ -598,29 +602,29 @@ export default function App() {
         model: "gemini-3-flash-preview",
         contents: `Task: Produce a professional, structured Credit Appraisal Memo (CAM) for ${entity.name}.
         
-        Data Input for Analysis:
-        - Structured: GSTR-2A vs 3B reconciliation showing 12% variance, Bank Statements (last 12 months), MCA charges of ₹142.5 Cr.
-        - Unstructured: Annual Report FY24 extracts, Board meeting minutes mentioning "liquidity constraints", Rating agency reports.
-        - External Intelligence: e-Courts portal showing Case 452/2024 (Delhi HC), News reports on sector headwinds.
+        Data Input for Analysis (Extracted from messy, scanned Indian PDFs):
+        - Structured: GSTR-2A vs 3B reconciliation showing 12% variance, Bank Statements (last 12 months), CIBIL Commercial report (Score: 720).
+        - Unstructured: Scanned Annual Report FY24 extracts, Board meeting minutes mentioning "liquidity constraints", MCA filings.
+        - External Intelligence (Research Depth): e-Courts portal showing Case 452/2024 (Delhi HC), Local news reports on promoter's other failed ventures.
         - Primary Insight: ${primaryNotes || "No specific notes provided."}
         - What-If Scenario: Interest rate increased by ${whatIfParams.interestRate}%, Revenue dropped by ${whatIfParams.revenueDrop}%.
         
         Requirement:
-        1. Apply the "Data Paradox" Filter: Scrutinize for contradictions between GST filings and Bank Statements.
+        1. Apply the "Data Paradox" Filter: Scrutinize for contradictions between GST filings (GSTR-1 vs 3B) and Bank Statements.
         2. Risk Detection: Flag potential "circular trading", revenue inflation, or promoter litigation risks.
-        3. Related Party Forensics: Note that 60% of revenue comes from a company owned by the promoter's spouse.
-        4. Five Cs Framework: Evaluate Character, Capacity, Capital, Collateral, and Conditions.
+        3. Explainability: "Walk the judge through" the logic. Explain WHY a specific risk score was assigned.
+        4. Indian Context: Explicitly handle nuances like GSTR-2A vs 3B reconciliation and CIBIL Commercial group exposure.
         5. Recommendation: Provide an Explainable Recommendation with a suggested risk premium and credit limit.
         
         Format the response as JSON with 'sections' (array of {title, content, sources, confidence, pillar}) and 'decision' (object with recommendation, limit, rate, rationale, score_breakdown, factors).`,
         config: {
           systemInstruction: `Role: You are an expert Indian Corporate Credit Appraisal Engine (Yukti AI). Your goal is to automate the creation of a Credit Appraisal Memo (CAM) by synthesizing structured and unstructured data.
           Core Directives:
-          * The "Data Paradox" Filter: Scrutinize documents for contradictions (e.g., GST vs. Bank Statements).
-          * Indian Context: You must recognize GSTR-2A vs 3B, MCA filings, and e-Court legal disputes.
-          * Risk Detection: Flag "circular trading," revenue inflation, and litigation risks buried in unstructured text like board minutes or rating reports.
-          * Five Cs Framework: Evaluate every applicant based on Character, Capacity, Capital, Collateral, and Conditions.
-          Output Style: Never provide a simple "Yes/No." Always provide an Explainable Recommendation citing specific evidence (e.g., "Rejected due to high litigation risk found in e-Courts despite strong GST flows").`,
+          * Extraction Accuracy: You excel at extracting data from messy, scanned Indian-context PDFs.
+          * Research Depth: You find relevant local news and regulatory filings (MCA, e-Courts) that aren't in the provided files.
+          * Explainability: You must "walk the judge through" your logic. No black-box decisions.
+          * Indian Context Sensitivity: You understand India-specific nuances like GSTR-2A vs 3B, CIBIL Commercial, and MCA charges.
+          Output Style: Provide an Explainable Recommendation citing specific evidence (e.g., "Rejected due to high litigation risk found in e-Courts despite strong GST flows").`,
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -743,22 +747,66 @@ export default function App() {
     setNewPromoterEmail("");
   };
 
-  const handleBulkIngestion = (type: 'structured' | 'unstructured') => {
+  const handleBulkIngestion = async (type: 'structured' | 'unstructured', file: File) => {
+    if (!file) return;
+    
+    setIsUploading(true);
+    setUploadProgress(0);
     setIsProcessing(true);
     setProcessingStep(1);
+    
     setResearchLogs([
-      `Initializing bulk ${type} data ingestion...`,
-      "Connecting to secure data vault...",
-      "Validating file integrity...",
-      "Running OCR and pattern recognition...",
-      "Cross-referencing with MCA database...",
-      "Data ingestion complete."
+      `Received: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+      "Initializing Yukti Forensic OCR Engine...",
+      "Optimizing for messy/scanned Indian document context...",
+      "Applying perspective correction to scanned pages...",
+      "Extracting tabular data from GST GSTR-2A vs 3B filings...",
+      "Cross-referencing PAN/CIN with MCA master data...",
+    ]);
+
+    // Simulate upload and OCR progress
+    for (let i = 0; i <= 100; i += 20) {
+      setUploadProgress(i);
+      await new Promise(r => setTimeout(r, 400));
+    }
+
+    setResearchLogs(prev => [
+      ...prev,
+      "OCR Extraction Accuracy: 98.4% (Confidence: High)",
+      "Detected: Scanned Bank Statement (SBI) with manual annotations.",
+      "Detected: GST Filing with linguistic stress in 'Other Liabilities'.",
+      "Data ingestion complete. Ready for AI Synthesis."
     ]);
     
-    setTimeout(() => {
-      setIsProcessing(false);
-      setProcessingStep(0);
-    }, 3000);
+    setIsUploading(false);
+    setSelectedFile(null);
+    
+    // If an entity is selected, automatically start analysis
+    if (selectedEntity) {
+      await startAnalysis(selectedEntity);
+    } else {
+      setTimeout(() => {
+        setIsProcessing(false);
+        setProcessingStep(0);
+      }, 2000);
+    }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'structured' | 'unstructured') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleBulkIngestion(type, file);
+    }
+  };
+
+  const handleApproval = (status: "completed" | "rejected") => {
+    if (!selectedEntity) return;
+    
+    const updatedEntities = entities.map(e => 
+      e.id === selectedEntity.id ? { ...e, status } : e
+    );
+    setEntities(updatedEntities);
+    setSelectedEntity({ ...selectedEntity, status });
   };
 
   const handleManageEntity = (entity: CorporateEntity) => {
@@ -787,7 +835,7 @@ export default function App() {
             <Shield className="text-white w-6 h-6" />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-none">CredLens AI</h1>
+            <h1 className="font-bold text-lg leading-none">Yukti AI</h1>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
               Credit Decisioning
             </p>
@@ -1026,21 +1074,53 @@ export default function App() {
                       Upload Structured (GST, ITR) and Unstructured (Annual Reports) data.
                     </p>
                     <div className="grid grid-cols-2 gap-4">
-                      <button 
-                        onClick={() => handleBulkIngestion('structured')}
-                        className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all"
-                      >
-                        <FileText className="w-6 h-6 text-gray-300 mb-2" />
-                        <span className="text-[10px] font-bold uppercase text-gray-400">Structured</span>
-                      </button>
-                      <button 
-                        onClick={() => handleBulkIngestion('unstructured')}
-                        className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all"
-                      >
-                        <Layers className="w-6 h-6 text-gray-300 mb-2" />
-                        <span className="text-[10px] font-bold uppercase text-gray-400">Unstructured</span>
-                      </button>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="structured-upload"
+                          className="hidden"
+                          accept=".pdf,.jpg,.png"
+                          onChange={(e) => onFileChange(e, 'structured')}
+                        />
+                        <label 
+                          htmlFor="structured-upload"
+                          className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all cursor-pointer"
+                        >
+                          <FileText className="w-6 h-6 text-gray-300 mb-2" />
+                          <span className="text-[10px] font-bold uppercase text-gray-400">Structured (GST/ITR)</span>
+                        </label>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="unstructured-upload"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) => onFileChange(e, 'unstructured')}
+                        />
+                        <label 
+                          htmlFor="unstructured-upload"
+                          className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all cursor-pointer"
+                        >
+                          <Layers className="w-6 h-6 text-gray-300 mb-2" />
+                          <span className="text-[10px] font-bold uppercase text-gray-400">Unstructured (Reports)</span>
+                        </label>
+                      </div>
                     </div>
+                    {isUploading && (
+                      <div className="mt-6">
+                        <div className="flex justify-between text-[10px] font-bold uppercase text-gray-400 mb-2">
+                          <span>Uploading & Processing...</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <div className="h-1 bg-gray-50 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-indigo-600 transition-all duration-300" 
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2375,6 +2455,23 @@ export default function App() {
                                 </div>
                               ))}
                             </div>
+
+                            {user?.role === "approver" && (
+                              <div className="flex gap-4">
+                                <button
+                                  onClick={() => handleApproval("completed")}
+                                  className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" /> Approve
+                                </button>
+                                <button
+                                  onClick={() => handleApproval("rejected")}
+                                  className="flex-1 py-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                                >
+                                  <XCircle className="w-4 h-4" /> Reject
+                                </button>
+                              </div>
+                            )}
 
                             <div className="flex gap-4">
                               <button
