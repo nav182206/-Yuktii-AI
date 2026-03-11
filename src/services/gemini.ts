@@ -1,6 +1,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+
+function getAI() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Gemini API key is missing. Please configure GEMINI_API_KEY in your environment variables.");
+  }
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+}
 
 export interface CampaignStrategy {
   reasoning: string;
@@ -23,6 +34,7 @@ export interface CampaignStrategy {
 export async function extractEntities(text: string) {
   if (text.length < 10) return null;
   
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `
@@ -52,6 +64,7 @@ export async function extractEntities(text: string) {
 }
 
 export async function generateCampaignStrategy(brief: string): Promise<CampaignStrategy> {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3.1-pro-preview",
     contents: `Analyze the following marketing campaign brief and generate a strategy: "${brief}"`,
@@ -124,6 +137,7 @@ export async function generateCampaignStrategy(brief: string): Promise<CampaignS
 }
 
 export async function analyzePerformance(metrics: any): Promise<string> {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3.1-pro-preview",
     contents: `

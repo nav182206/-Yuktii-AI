@@ -322,7 +322,6 @@ export default function App() {
   const [approvalFeedback, setApprovalFeedback] = useState<{type: 'success' | 'error', msg: string} | null>(null);
 
   const networkRef = useRef<SVGSVGElement>(null);
-  const [isApiKeyMissing, setIsApiKeyMissing] = useState(!process.env.GEMINI_API_KEY);
 
   useEffect(() => {
     // Forensic graph is now handled by ForceGraph2D component
@@ -650,7 +649,7 @@ export default function App() {
       setCamOutput([
         {
           title: "Configuration Error",
-          content: "Gemini API Key is missing. Please set the GEMINI_API_KEY environment variable in the Settings menu to enable AI analysis.",
+          content: "Gemini API Key is missing. Please ensure GEMINI_API_KEY is set in your environment variables to enable AI analysis.",
           sources: ["System Check"],
           confidence: 0,
           pillar: "Conditions",
@@ -780,7 +779,7 @@ export default function App() {
       const errorMsg = error.message?.toLowerCase() || "";
       
       if (errorMsg.includes("api key not valid") || errorMsg.includes("api_key_invalid") || errorStr.includes("api key")) {
-        errorMessage = "Invalid Gemini API Key. Please ensure the GEMINI_API_KEY environment variable is correctly set in the Settings menu.";
+        errorMessage = "Invalid Gemini API Key. Please ensure the GEMINI_API_KEY environment variable is correctly set.";
       } else if (errorMsg.includes("fetch failed") || errorMsg.includes("network") || errorStr.includes("network")) {
         errorMessage = "Network connection issue detected. Please check your internet connection and try again.";
       } else if (errorMsg.includes("quota") || errorMsg.includes("429") || errorStr.includes("quota")) {
@@ -1020,15 +1019,6 @@ export default function App() {
 
       {/* Main Content */}
       <main className="ml-64 min-h-screen">
-        {isApiKeyMissing && (
-          <div className="mx-8 mt-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800">
-            <AlertTriangle className="w-5 h-5" />
-            <p className="text-sm font-medium">
-              Gemini API Key is missing. AI features will be disabled.
-            </p>
-          </div>
-        )}
-        
         <div className="p-8 max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div

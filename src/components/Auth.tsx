@@ -91,86 +91,132 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 font-sans selection:bg-indigo-500/30">
-      {/* Immersive Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-600/10 blur-[120px] rounded-full animate-pulse [animation-delay:2s]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.05)_0%,transparent_70%)]" />
-        
-        {/* Grid Pattern Overlay */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]" />
-      </div>
-
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md bg-black/40 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] relative z-10"
-      >
-        {/* Top Status Bar */}
-        <div className="px-8 py-3 bg-white/5 border-b border-white/5 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em]">System Secure</span>
-          </div>
-          <span className="text-[8px] font-bold text-gray-600 uppercase tracking-[0.2em]">v2.4.0-Forensic</span>
+    <div className="min-h-screen bg-[#050505] flex font-sans selection:bg-indigo-500/30 overflow-hidden">
+      {/* Left Side: Branding & Visuals */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0a0a0a] overflow-hidden items-center justify-center border-r border-white/5">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[120px] rounded-full animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-emerald-600/10 blur-[120px] rounded-full animate-pulse [animation-delay:2s]" />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:60px_60px]" />
         </div>
 
-        <div className="p-10">
-          <div className="flex flex-col items-center mb-10 text-center">
-            <motion.div 
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-3xl flex items-center justify-center mb-6 shadow-[0_20px_40px_-10px_rgba(79,70,229,0.4)] relative group"
-            >
-              <Shield className="w-10 h-10 text-white relative z-10" />
-              <div className="absolute inset-0 bg-white/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            </motion.div>
-            <h1 className="text-4xl font-bold text-white tracking-tighter mb-2">Yukti AI</h1>
-            <div className="flex items-center gap-2">
-              <div className="h-[1px] w-4 bg-indigo-500/50" />
-              <p className="text-indigo-400/80 text-[10px] font-bold uppercase tracking-[0.3em]">
-                AI-powered Credit Decisioning Engine
-              </p>
-              <div className="h-[1px] w-4 bg-indigo-500/50" />
+        <div className="relative z-10 px-24">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="flex items-center gap-4 mb-12">
+              <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-[0_0_40px_-5px_rgba(79,70,229,0.6)]">
+                <Shield className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.4em] block mb-1">Intelligence Core</span>
+                <span className="text-sm font-bold text-white uppercase tracking-[0.2em]">Yukti AI</span>
+              </div>
+            </div>
+            
+            <h1 className="text-8xl font-bold text-white tracking-tighter leading-[0.85] mb-10">
+              Precision <br />
+              <span className="text-indigo-500">Decisioning.</span>
+            </h1>
+            
+            <p className="text-xl text-gray-400 max-w-md leading-relaxed mb-16 font-medium">
+              The next generation of AI-powered credit underwriting and forensic analysis for modern banking institutions.
+            </p>
+
+            <div className="grid grid-cols-2 gap-12">
+              <div className="space-y-3">
+                <div className="w-8 h-[1px] bg-indigo-500" />
+                <p className="text-[10px] font-bold text-white uppercase tracking-widest">Forensic Engine</p>
+                <p className="text-sm text-gray-500 leading-relaxed">Real-time circular trading detection and satellite audit verification.</p>
+              </div>
+              <div className="space-y-3">
+                <div className="w-8 h-[1px] bg-indigo-500" />
+                <p className="text-[10px] font-bold text-white uppercase tracking-widest">AI Synthesis</p>
+                <p className="text-sm text-gray-500 leading-relaxed">Automated Credit Appraisal Memo generation from multi-source data.</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Floating Element */}
+        <motion.div
+          animate={{ 
+            y: [0, -20, 0],
+            rotate: [0, 2, 0]
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-20 left-24 p-6 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/20">
+              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">System Status</p>
+              <p className="text-xs font-bold text-white tracking-tight">All Engines Operational</p>
             </div>
           </div>
+        </motion.div>
+      </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Right Side: Auth Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative bg-[#050505]">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="w-full max-w-md"
+        >
+          <div className="mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-6">
+              <div className="w-1 h-1 bg-indigo-500 rounded-full animate-pulse" />
+              <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Secure Access Protocol</span>
+            </div>
+            <h2 className="text-4xl font-bold text-white tracking-tight mb-3">
+              {isLogin ? "Welcome Back" : "Create Account"}
+            </h2>
+            <p className="text-gray-500 text-sm font-medium">
+              {isLogin ? "Enter your credentials to access the intelligence suite." : "Join the next generation of credit analysis."}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             <AnimatePresence mode="wait">
               {!isLogin && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-5"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-6"
                 >
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Full Name</label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Full Name</label>
                     <div className="relative group">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-indigo-400 transition-colors" />
                       <input
                         type="text"
                         name="fullName"
-                        placeholder="Enter your full name"
+                        placeholder="John Doe"
                         required={!isLogin}
                         value={formData.fullName}
                         onChange={handleInputChange}
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.05] transition-all"
+                        className="w-full bg-white/[0.02] border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.04] transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Operational Role</label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Operational Role</label>
                     <div className="relative group">
                       <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-indigo-400 transition-colors" />
                       <select
                         name="role"
                         value={formData.role}
                         onChange={handleInputChange}
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.05] transition-all appearance-none cursor-pointer"
+                        className="w-full bg-white/[0.02] border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.04] transition-all appearance-none cursor-pointer"
                       >
                         <option value="employee" className="bg-[#0a0a0a]">Bank Employee</option>
                         <option value="admin" className="bg-[#0a0a0a]">Data Adder (Admin)</option>
@@ -183,8 +229,8 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
               )}
             </AnimatePresence>
 
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Identity (Email)</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Identity (Email)</label>
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-indigo-400 transition-colors" />
                 <input
@@ -194,13 +240,13 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.05] transition-all"
+                  className="w-full bg-white/[0.02] border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.04] transition-all"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Access Key (Password)</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Access Key (Password)</label>
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-indigo-400 transition-colors" />
                 <input
@@ -210,35 +256,10 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.05] transition-all"
+                  className="w-full bg-white/[0.02] border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.04] transition-all"
                 />
               </div>
             </div>
-
-            <AnimatePresence>
-              {!isLogin && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-1.5"
-                >
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Verify Access Key</label>
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-indigo-400 transition-colors" />
-                    <input
-                      type="password"
-                      name="confirmPassword"
-                      placeholder="••••••••"
-                      required={!isLogin}
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white/[0.05] transition-all"
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {error && (
               <motion.div 
@@ -254,7 +275,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 group shadow-[0_10px_20px_-5px_rgba(79,70,229,0.3)] hover:shadow-[0_15px_30px_-5px_rgba(79,70,229,0.4)] active:scale-[0.98]"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 group shadow-[0_10px_30px_-5px_rgba(79,70,229,0.4)] active:scale-[0.98]"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -267,16 +288,16 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             </button>
           </form>
 
-          <div className="mt-12 pt-8 border-t border-white/5">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="mt-16">
+            <div className="flex items-center gap-3 mb-8">
               <div className="h-[1px] flex-1 bg-white/5" />
-              <p className="text-[9px] text-gray-600 font-bold uppercase tracking-[0.3em] whitespace-nowrap">
+              <p className="text-[9px] text-gray-600 font-bold uppercase tracking-[0.4em] whitespace-nowrap">
                 Rapid Access Protocols
               </p>
               <div className="h-[1px] flex-1 bg-white/5" />
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {[
                 { role: 'admin', label: 'Admin', icon: Shield },
                 { role: 'employee', label: 'Employee', icon: User },
@@ -286,44 +307,24 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 <button
                   key={item.role}
                   onClick={() => handleMockLogin(item.role as any)}
-                  className="px-4 py-3 bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 rounded-xl text-[10px] font-bold text-gray-400 hover:text-white transition-all flex items-center gap-3 group"
+                  className="px-4 py-4 bg-white/[0.01] hover:bg-white/[0.04] border border-white/5 rounded-2xl text-[10px] font-bold text-gray-500 hover:text-white transition-all flex items-center justify-center gap-3 group"
                 >
-                  <item.icon className="w-3.5 h-3.5 text-gray-600 group-hover:text-indigo-400 transition-colors" />
-                  {item.label}
+                  <item.icon className="w-4 h-4 text-gray-700 group-hover:text-indigo-400 transition-colors" />
+                  <span className="tracking-widest uppercase">{item.label}</span>
                 </button>
               ))}
             </div>
-            
-            {!isSupabaseConfigured && (
-              <div className="mt-6 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                <p className="text-[9px] text-amber-500/60 text-center font-medium italic">
-                  Cloud sync offline. Local forensic mode active.
-                </p>
-              </div>
-            )}
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-10 text-center">
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-xs text-gray-500 hover:text-indigo-400 transition-colors font-medium"
+              className="text-xs text-gray-500 hover:text-indigo-400 transition-colors font-medium tracking-tight"
             >
               {isLogin ? "New operative? Register here" : "Existing operative? Authenticate"}
             </button>
           </div>
-        </div>
-      </motion.div>
-
-      {/* Footer Branding */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-30">
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 bg-gray-600 rounded-full" />
-          <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Encrypted</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 bg-gray-600 rounded-full" />
-          <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Distributed</span>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
