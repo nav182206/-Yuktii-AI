@@ -372,7 +372,7 @@ export default function App() {
       doc.text("Yukti AI", 20, 25);
       doc.setFontSize(14);
       doc.setFont("helvetica", "normal");
-      doc.text("Forensic Credit Appraisal Report", 20, 35);
+      doc.text("AI-powered Credit Appraisal Report", 20, 35);
       doc.setFontSize(9);
       doc.text(`Generated: ${new Date().toLocaleString()} | Confidential`, 20, 42);
 
@@ -473,7 +473,7 @@ export default function App() {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
-        doc.text(`Page ${i} of ${pageCount} | Yukti AI Forensic Suite | Proprietary & Confidential`, 105, 285, { align: 'center' });
+        doc.text(`Page ${i} of ${pageCount} | Yukti AI Credit Decisioning Engine | Proprietary & Confidential`, 105, 285, { align: 'center' });
       }
 
       doc.save(`Yukti_CAM_${selectedEntity.name.replace(/\s+/g, '_')}.pdf`);
@@ -530,7 +530,7 @@ export default function App() {
     setIsProcessing(true);
     setProcessingStep(1);
     setResearchLogs([
-      "Initializing Forensic Intelligence Suite...",
+      "Initializing AI-powered Credit Decisioning Engine...",
       "Running Circular Trading Detector (Graph Theory)...",
       "Analyzing Linguistic Stress in Management Interviews...",
       "Verifying Asset Utilization via Satellite Space Audit...",
@@ -582,55 +582,82 @@ export default function App() {
     setProcessingStep(0);
   };
 
+  const updateEntityStatus = (id: string, status: CorporateEntity['status'], updates: Partial<CorporateEntity> = {}) => {
+    setEntities(prev => prev.map(e => e.id === id ? { ...e, status, ...updates } : e));
+    if (selectedEntity?.id === id) {
+      setSelectedEntity(prev => prev ? { ...prev, status, ...updates } : null);
+    }
+  };
+
   const startAnalysis = async (entity: CorporateEntity) => {
-    setSelectedEntity(entity);
-    setPrimaryNotes(entity.primary_notes || "");
-    setIsProcessing(true);
-    setActiveTab("cam"); // Switch to CAM tab immediately to show progress
-    setProcessingStep(1);
-    setResearchLogs([
-      "Initializing multi-source data ingestion...",
-      "Connecting to Yukti Forensic OCR Engine (Optimized for messy Indian PDFs)...",
-      "Fetching GST filings (GSTR-2A vs 3B reconciliation)...",
-      "Cross-referencing MCA Master Data for promoter linkages...",
-    ]);
+    try {
+      updateEntityStatus(entity.id, 'processing');
+      setSelectedEntity(entity);
+      setPrimaryNotes(entity.primary_notes || "");
+      setIsProcessing(true);
+      setActiveTab("cam"); // Switch to CAM tab immediately to show progress
+      setProcessingStep(1);
+      setResearchLogs([
+        "Initializing multi-source data ingestion...",
+        "Connecting to Yukti Forensic OCR Engine (Optimized for messy Indian PDFs)...",
+        "Fetching GST filings (GSTR-2A vs 3B reconciliation)...",
+        "Cross-referencing MCA Master Data for promoter linkages...",
+      ]);
 
-    // Step 1: Ingestion & Synthesis
-    await new Promise((r) => setTimeout(r, 1500));
-    setProcessingStep(2);
-    setResearchLogs((prev) => [
-      ...prev,
-      "Analyzing CIBIL Commercial reports for group-level exposure...",
-      "Circular trading detection algorithm running (Graph Theory)...",
-      "Identifying revenue inflation patterns in GSTR-1 vs 3B...",
-    ]);
+      // Step 1: Ingestion & Synthesis
+      await new Promise((r) => setTimeout(r, 1500));
+      setProcessingStep(2);
+      setResearchLogs((prev) => [
+        ...prev,
+        "Analyzing CIBIL Commercial reports for group-level exposure...",
+        "Circular trading detection algorithm running (Graph Theory)...",
+        "Identifying revenue inflation patterns in GSTR-1 vs 3B...",
+      ]);
 
-    // Step 2: Unstructured Analysis
-    await new Promise((r) => setTimeout(r, 1500));
-    setProcessingStep(3);
-    setResearchLogs((prev) => [
-      ...prev,
-      "Parsing messy/scanned Annual Report FY24 extracts...",
-      "Extracting contingent liabilities from legal notices...",
-      "Analyzing management interview transcripts for linguistic stress...",
-    ]);
+      // Step 2: Unstructured Analysis
+      await new Promise((r) => setTimeout(r, 1500));
+      setProcessingStep(3);
+      setResearchLogs((prev) => [
+        ...prev,
+        "Parsing messy/scanned Annual Report FY24 extracts...",
+        "Extracting contingent liabilities from legal notices...",
+        "Analyzing management interview transcripts for linguistic stress...",
+      ]);
 
-    // Step 3: Web-scale Research (Depth)
-    await new Promise((r) => setTimeout(r, 1500));
-    setProcessingStep(4);
-    setResearchLogs((prev) => [
-      ...prev,
-      "Crawling e-Courts for pending litigation history...",
-      "Scanning local news for promoter reputation issues...",
-      "Verifying factory utilization via Satellite Space Audit...",
-    ]);
+      // Step 3: Web-scale Research (Depth)
+      await new Promise((r) => setTimeout(r, 1500));
+      setProcessingStep(4);
+      setResearchLogs((prev) => [
+        ...prev,
+        "Crawling e-Courts for pending litigation history...",
+        "Scanning local news for promoter reputation issues...",
+        "Verifying factory utilization via Satellite Space Audit...",
+      ]);
 
-    // Final Synthesis
-    await generateCAM(entity);
-    setIsProcessing(false);
+      // Final Synthesis
+      await generateCAM(entity);
+      updateEntityStatus(entity.id, 'completed');
+    } catch (error) {
+      console.error("Analysis process failed:", error);
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep(0);
+    }
   };
 
   const generateCAM = async (entity: CorporateEntity) => {
+    if (!process.env.GEMINI_API_KEY) {
+      setCamOutput([
+        {
+          title: "Configuration Error",
+          content: "Gemini API Key is missing. Please set the GEMINI_API_KEY environment variable in the Settings menu to enable AI analysis.",
+          sources: ["System Check"],
+          confidence: 0,
+          pillar: "Conditions",
+        },
+      ]);
+      return;
+    }
     try {
       const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
       const response = await genAI.models.generateContent({
@@ -745,13 +772,30 @@ export default function App() {
       const data = JSON.parse(response.text);
       setCamOutput(data.sections);
       setDecisionLogic(data.decision);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating CAM:", error);
+      let errorMessage = "Failed to generate CAM. Please check your configuration.";
+      
+      const errorStr = error.toString().toLowerCase();
+      const errorMsg = error.message?.toLowerCase() || "";
+      
+      if (errorMsg.includes("api key not valid") || errorMsg.includes("api_key_invalid") || errorStr.includes("api key")) {
+        errorMessage = "Invalid Gemini API Key. Please ensure the GEMINI_API_KEY environment variable is correctly set in the Settings menu.";
+      } else if (errorMsg.includes("fetch failed") || errorMsg.includes("network") || errorStr.includes("network")) {
+        errorMessage = "Network connection issue detected. Please check your internet connection and try again.";
+      } else if (errorMsg.includes("quota") || errorMsg.includes("429") || errorStr.includes("quota")) {
+        errorMessage = "API Quota exceeded. You have reached the limit for your Gemini API key. Please try again in a few minutes.";
+      } else if (errorMsg.includes("safety") || errorStr.includes("safety")) {
+        errorMessage = "The analysis was blocked by AI safety filters. Please try adjusting your input notes.";
+      } else if (error.message) {
+        errorMessage = `System Error: ${error.message}`;
+      }
+
       setCamOutput([
         {
-          title: "Error",
-          content: "Failed to generate CAM. Please check API configuration.",
-          sources: [],
+          title: "Analysis Failure",
+          content: errorMessage,
+          sources: ["Yukti System Diagnostics"],
           confidence: 0,
           pillar: "Conditions",
         },
@@ -836,12 +880,7 @@ export default function App() {
 
   const handleApproval = (status: "completed" | "rejected") => {
     if (!selectedEntity) return;
-    
-    const updatedEntities = entities.map(e => 
-      e.id === selectedEntity.id ? { ...e, status } : e
-    );
-    setEntities(updatedEntities);
-    setSelectedEntity({ ...selectedEntity, status });
+    updateEntityStatus(selectedEntity.id, status);
     
     setApprovalFeedback({
       type: 'success',
@@ -879,7 +918,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white tracking-tight">Yukti AI</h1>
-              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest leading-none">Forensic Suite</p>
+              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest leading-none">AI-powered Credit Decisioning Engine</p>
             </div>
           </div>
 
@@ -887,6 +926,7 @@ export default function App() {
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4 px-4">Navigation</p>
             {user.role === "admin" && [
               { id: "management", label: "Management", icon: Building2 },
+              { id: "status", label: "Status Tracker", icon: Activity },
               { id: "users", label: "User Accounts", icon: Briefcase },
             ].map((item) => (
               <button
@@ -909,6 +949,7 @@ export default function App() {
               { id: "research", label: "AI Research", icon: Globe },
               { id: "forensics", label: "Forensics", icon: Network },
               { id: "cam", label: "Credit Memo", icon: FileText },
+              { id: "status", label: "Status Tracker", icon: Activity },
             ].map((item) => (
               <button
                 key={item.id}
@@ -1027,6 +1068,19 @@ export default function App() {
                       selectedEntity &&
                       `Credit Memo: ${selectedEntity.name}`}
                   </h2>
+                  {selectedEntity && activeTab !== "dashboard" && activeTab !== "management" && activeTab !== "users" && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        selectedEntity.status === 'completed' ? 'bg-emerald-500' :
+                        selectedEntity.status === 'rejected' ? 'bg-rose-500' :
+                        selectedEntity.status === 'processing' ? 'bg-amber-500 animate-pulse' :
+                        'bg-slate-300'
+                      }`} />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        Status: {selectedEntity.status}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-4">
@@ -1179,15 +1233,41 @@ export default function App() {
 
             {activeTab === "status" && (
               <div className="max-w-3xl mx-auto space-y-8">
-                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                {!selectedEntity && (
+                  <div className="bg-white p-12 rounded-3xl border border-dashed border-gray-200 text-center">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Activity className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">No Application Selected</h3>
+                    <p className="text-sm text-slate-500 mb-8 max-w-xs mx-auto">Select a corporate entity from the dashboard to track its credit appraisal progress.</p>
+                    <button 
+                      onClick={() => setActiveTab("dashboard")}
+                      className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                    >
+                      Go to Dashboard
+                    </button>
+                  </div>
+                )}
+                
+                {selectedEntity && (
+                  <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                   <div className="flex justify-between items-center mb-8">
                     <div>
-                      <h3 className="text-xl font-bold">Acme Corp Loan Application</h3>
-                      <p className="text-sm text-gray-500">Application ID: APP-90210</p>
+                      <h3 className="text-xl font-bold">{selectedEntity?.name || "Select an Application"} Application</h3>
+                      <p className="text-sm text-gray-500">Application ID: APP-{selectedEntity?.id.padStart(5, '0') || "00000"}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-bold text-gray-400 uppercase">Current Status</p>
-                      <p className="text-lg font-bold text-indigo-600">Step 2: Site Visit Pending</p>
+                      <p className={`text-lg font-bold ${
+                        selectedEntity?.status === 'completed' ? 'text-emerald-600' :
+                        selectedEntity?.status === 'rejected' ? 'text-red-600' :
+                        'text-indigo-600'
+                      }`}>
+                        {selectedEntity?.status === 'completed' ? 'Decision: Approved' :
+                         selectedEntity?.status === 'rejected' ? 'Decision: Rejected' :
+                         selectedEntity?.status === 'processing' ? 'Step 3: Risk Assessment' :
+                         'Step 1: Document Verification'}
+                      </p>
                     </div>
                   </div>
 
@@ -1195,10 +1275,30 @@ export default function App() {
                     <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-100" />
                     <div className="space-y-12">
                       {[
-                        { step: "Step 1", title: "Document Verification", status: "completed", desc: "GST, ITR and Bank Statements verified by AI Engine" },
-                        { step: "Step 2", title: "Site Visit & Primary Insights", status: "current", desc: "Bank official scheduled to visit factory premises" },
-                        { step: "Step 3", title: "Risk Assessment", status: "pending", desc: "Final credit score calculation and limit recommendation" },
-                        { step: "Step 4", title: "CAM Approval", status: "pending", desc: "Final Credit Appraisal Memo generation and sign-off" },
+                        { 
+                          step: "Step 1", 
+                          title: "Document Verification", 
+                          status: selectedEntity ? (['processing', 'completed', 'rejected'].includes(selectedEntity.status) ? 'completed' : 'current') : 'pending', 
+                          desc: "GST, ITR and Bank Statements verified by AI Engine" 
+                        },
+                        { 
+                          step: "Step 2", 
+                          title: "Forensic Analysis", 
+                          status: selectedEntity ? (['completed', 'rejected'].includes(selectedEntity.status) ? 'completed' : (selectedEntity.status === 'processing' ? 'current' : 'pending')) : 'pending', 
+                          desc: "Circular trading and satellite audit checks" 
+                        },
+                        { 
+                          step: "Step 3", 
+                          title: "Risk Assessment", 
+                          status: selectedEntity ? (['completed', 'rejected'].includes(selectedEntity.status) ? 'completed' : (selectedEntity.status === 'processing' ? 'current' : 'pending')) : 'pending', 
+                          desc: "Final credit score calculation and limit recommendation" 
+                        },
+                        { 
+                          step: "Step 4", 
+                          title: "Final Decision", 
+                          status: selectedEntity ? (['completed', 'rejected'].includes(selectedEntity.status) ? 'completed' : 'pending') : 'pending', 
+                          desc: selectedEntity?.status === 'rejected' ? "Application Rejected based on risk profile" : "Final Credit Appraisal Memo sign-off" 
+                        },
                       ].map((item, i) => (
                         <div key={i} className="relative pl-12">
                           <div className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center z-10 ${
@@ -1220,22 +1320,75 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-indigo-900 p-8 rounded-3xl text-white shadow-xl shadow-indigo-100">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-lg">Need Help?</h4>
-                      <p className="text-indigo-200 text-sm mt-1">Contact your dedicated Relationship Manager</p>
+                )}
+
+                {selectedEntity && (
+                  <div className="bg-indigo-900 p-8 rounded-3xl text-white shadow-xl shadow-indigo-100">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-bold text-lg">Need Help?</h4>
+                        <p className="text-indigo-200 text-sm mt-1">Contact your dedicated Relationship Manager</p>
+                      </div>
+                      <button className="bg-white text-indigo-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all">
+                        Chat with RM
+                      </button>
                     </div>
-                    <button className="bg-white text-indigo-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all">
-                      Chat with RM
-                    </button>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
             {activeTab === "dashboard" && (
               <div className="space-y-10">
+                {selectedEntity && (
+                  <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                        <Activity className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900">Active Tracking: {selectedEntity.name}</h4>
+                        <p className="text-xs text-slate-500">Current Phase: {
+                          selectedEntity.status === 'completed' ? 'Final Decision (Approved)' :
+                          selectedEntity.status === 'rejected' ? 'Final Decision (Rejected)' :
+                          selectedEntity.status === 'processing' ? 'AI Risk Assessment' :
+                          'Document Ingestion'
+                        }</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4].map((step) => {
+                          const isCompleted = (step === 1 && ['processing', 'completed', 'rejected'].includes(selectedEntity.status)) ||
+                                            (step === 2 && ['completed', 'rejected'].includes(selectedEntity.status)) ||
+                                            (step === 3 && ['completed', 'rejected'].includes(selectedEntity.status)) ||
+                                            (step === 4 && ['completed', 'rejected'].includes(selectedEntity.status));
+                          const isCurrent = (step === 1 && selectedEntity.status === 'pending') ||
+                                          (step === 2 && selectedEntity.status === 'processing') ||
+                                          (step === 3 && selectedEntity.status === 'processing'); // Simplified
+                          
+                          return (
+                            <div 
+                              key={step}
+                              className={`w-8 h-1 rounded-full ${
+                                isCompleted ? 'bg-emerald-500' :
+                                isCurrent ? 'bg-indigo-600 animate-pulse' :
+                                'bg-slate-100'
+                              }`}
+                            />
+                          );
+                        })}
+                      </div>
+                      <button 
+                        onClick={() => setActiveTab("status")}
+                        className="text-xs font-bold text-indigo-600 hover:underline"
+                      >
+                        View Full Tracker
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <StatCard
@@ -1369,9 +1522,21 @@ export default function App() {
                               )}
                             </td>
                             <td className="px-8 py-6 text-right">
-                              <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
-                                <ChevronRight className="w-5 h-5" />
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedEntity(entity);
+                                    setActiveTab("status");
+                                  }}
+                                  className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                >
+                                  Track Status
+                                </button>
+                                <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                                  <ChevronRight className="w-5 h-5" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}

@@ -131,7 +131,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             <div className="flex items-center gap-2">
               <div className="h-[1px] w-4 bg-indigo-500/50" />
               <p className="text-indigo-400/80 text-[10px] font-bold uppercase tracking-[0.3em]">
-                Forensic Intelligence Suite
+                AI-powered Credit Decisioning Engine
               </p>
               <div className="h-[1px] w-4 bg-indigo-500/50" />
             </div>
