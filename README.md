@@ -1,3 +1,8 @@
+<img width="1917" height="1074" alt="image" src="https://github.com/user-attachments/assets/9212c916-683f-450d-bd7e-abb7aef7b37e" />
+
+
+<img width="1919" height="1087" alt="image" src="https://github.com/user-attachments/assets/7f75db5c-2ada-4135-9d47-ac8edfc588e3" />
+
 # Yukti AI
 
 An AI-powered digital marketing campaign agent designed for SuperBFSI to plan, launch, monitor, and optimize email campaigns for financial products.
